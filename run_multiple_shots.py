@@ -8,7 +8,10 @@ from functions_fit_2D import master_fit_ne_Te_1D
 import eqtools
 from eqtools import CModEFIT
 
-# list of shots
+
+##################################
+### EDIT LIST OF SHOTS TO FIT HERE
+##################################
 list_of_shots = [1030523030, 1050413031]
 
 dictionary_of_all_data = {}
