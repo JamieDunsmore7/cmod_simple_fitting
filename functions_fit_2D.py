@@ -709,15 +709,14 @@ def get_P_ohmic(shot):
 
 ### FUNCTIONS FOR CLEANING RAW THOMSON DATA ###
 
-def remove_zeros(xdata, ydata, y_error, remove_all = True):
+def remove_zeros(xdata, ydata, y_error, core_only = True):
     '''
     INPUTS
     --------
     xdata: 1D array of x values
     ydata: 1D array of y values (ne or Te)
     y_error: 1D array of y errors (ne error or Te error)
-    remove_all: boolean, if True, all zeros are removed. If False, the last two zeros are kept (as these may be physical)
-
+    core_only: boolean, if True, only remove zeros from the core data. If False, remove zeros from the SOL data as well.
     RETURNS
     --------
     new_x: 1D array of x values with zeros removed
@@ -730,12 +729,10 @@ def remove_zeros(xdata, ydata, y_error, remove_all = True):
     Can sometimes help to clean up the raw data before fitting.
     '''
 
-    if remove_all == True:
-        mask  = ydata != 0
+    if core_only == True:
+        mask  = (ydata != 0) | (xdata > 1) #only remove zeros from inside the LCFS
     else: #let the last two values in the array be zero because these zeros may be physical
-        checking_array = ydata[:-2]
-        mask = checking_array != 0
-        mask = np.append(mask, [True, True])
+        mask = ydata != 0
 
     new_x = xdata[mask]
     new_y = ydata[mask]
@@ -1310,7 +1307,7 @@ def master_fit_ne_Te_1D(shot, t_min=0, t_max=5000, scale_core_TS_to_TCI = False,
     '''
 
 
-    Thomson_times, ne_array, ne_err_array, te_array, te_err_array, rmid_array, r_array, z_array = get_raw_edge_Thomson_data(shot, t_min=t_min, t_max=t_max)
+    Thomson_times, ne_array_edge, ne_err_array_edge, te_array_edge, te_err_array_edge, rmid_array_edge, r_array_edge, z_array_edge = get_raw_edge_Thomson_data(shot, t_min=t_min, t_max=t_max)
     Thomson_times_core, ne_array_core, ne_err_array_core, te_array_core, te_err_array_core, rmid_array_core, r_array_core, z_array_core = get_raw_core_Thomson_data(shot, t_min = t_min, t_max = t_max)
 
 
@@ -1377,11 +1374,11 @@ def master_fit_ne_Te_1D(shot, t_min=0, t_max=5000, scale_core_TS_to_TCI = False,
             print('TIME: ', time)
 
             # Get the data at this time point.
-            raw_ne = ne_array[:,t_idx]
-            raw_ne_err = ne_err_array[:,t_idx]
-            raw_te = te_array[:, t_idx]
-            raw_te_err = te_err_array[:, t_idx]
-            raw_rmid = rmid_array[:, t_idx]
+            raw_ne_edge = ne_array_edge[:,t_idx]
+            raw_ne_err_edge = ne_err_array_edge[:,t_idx]
+            raw_te_edge = te_array_edge[:, t_idx]
+            raw_te_err_edge = te_err_array_edge[:, t_idx]
+            raw_rmid_edge = rmid_array_edge[:, t_idx]
 
             raw_ne_core = ne_array_core[:,t_idx]
             raw_ne_err_core = ne_err_array_core[:,t_idx]
@@ -1391,7 +1388,7 @@ def master_fit_ne_Te_1D(shot, t_min=0, t_max=5000, scale_core_TS_to_TCI = False,
 
             # Catch time points with poor/no data.
             # Often the rmid values are set to -1 in the tree if there is no data at that time point.
-            if np.all(np.isnan(raw_rmid)) or np.all(raw_rmid_core < 0):
+            if np.all(np.isnan(raw_rmid_edge)) or np.all(raw_rmid_core < 0):
                 print('No Edge Thomson data at this time point. Skipping.')
                 continue
 
@@ -1400,43 +1397,38 @@ def master_fit_ne_Te_1D(shot, t_min=0, t_max=5000, scale_core_TS_to_TCI = False,
                 raw_te_err_core[raw_te_err_core == 0] = raw_te_core[raw_te_err_core==0]*0.1 # set error bars in the core to 10% if they don't exist yet
 
 
+            #Switch from Rmid to psi coordinates here using eqtools
+            raw_psi_edge = e.rho2rho('Rmid', 'psinorm', raw_rmid_edge, time_in_s)
+            raw_psi_core = e.rho2rho('Rmid', 'psinorm', raw_rmid_core, time_in_s)
+
             # Option to remove zeros from the data for fitting.
             if remove_zeros_before_fitting == True:
                 # edge
-                te_radii, te, te_err = remove_zeros(raw_rmid, raw_te, raw_te_err, remove_all=True)
-                ne_radii, ne, ne_err = remove_zeros(raw_rmid, raw_ne, raw_ne_err, remove_all=True)
+                raw_te_psi_edge, raw_te_edge, raw_te_err_edge = remove_zeros(raw_psi_edge, raw_te_edge, raw_te_err_edge, core_only=True)
+                raw_ne_psi_edge, raw_ne_edge, raw_ne_err_edge = remove_zeros(raw_psi_edge, raw_ne_edge, raw_ne_err_edge, core_only=True)
 
                 # core
-                te_radii_core, te_core, te_err_core = remove_zeros(raw_rmid_core, raw_te_core, raw_te_err_core, remove_all=True)
-                ne_radii_core, ne_core, ne_err_core = remove_zeros(raw_rmid_core, raw_ne_core, raw_ne_err_core, remove_all=True)
+                raw_te_psi_core, raw_te_core, raw_te_err_core = remove_zeros(raw_psi_core, raw_te_core, raw_te_err_core, core_only=True)
+                raw_ne_psi_core, raw_ne_core, raw_ne_err_core = remove_zeros(raw_psi_core, raw_ne_core, raw_ne_err_core, core_only=True)
+
             else:
-                te_radii, te, te_err = raw_rmid, raw_te, raw_te_err
-                ne_radii, ne, ne_err = raw_rmid, raw_ne, raw_ne_err
-
-                te_radii_core, te_core, te_err_core = raw_rmid_core, raw_te_core, raw_te_err_core
-                ne_radii_core, ne_core, ne_err_core = raw_rmid_core, raw_ne_core, raw_ne_err_core
-
-
-            #Switch from Rmid to psi coordinates here using eqtools
-            te_radii = e.rho2rho('Rmid', 'psinorm', te_radii, time_in_s)
-            ne_radii = e.rho2rho('Rmid', 'psinorm', ne_radii, time_in_s)
-
-            te_radii_core = e.rho2rho('Rmid', 'psinorm', te_radii_core, time_in_s)
-            ne_radii_core = e.rho2rho('Rmid', 'psinorm', ne_radii_core, time_in_s)
-
+                raw_te_psi_edge = raw_psi_edge
+                raw_ne_psi_edge = raw_psi_edge
+                raw_te_psi_core = raw_psi_core
+                raw_ne_psi_core = raw_psi_core
 
             # Add in a zero in the SOL at a pre-specified psi value (hardcoded in the function as 1.05).
-            te_radii, te, te_err = add_SOL_zeros_in_psi_coords(te_radii, te, te_err)
-            ne_radii, ne, ne_err = add_SOL_zeros_in_psi_coords(ne_radii, ne, ne_err)
+            #raw_te_psi_edge, raw_te_edge, raw_te_err_edge = add_SOL_zeros_in_psi_coords(raw_te_psi_edge, raw_te_edge, raw_te_err_edge)
+            #raw_ne_psi_edge, raw_ne_edge, raw_ne_err_edge = add_SOL_zeros_in_psi_coords(raw_ne_psi_edge, raw_ne_edge, raw_ne_err_edge)
 
 
             # combine the core and edge data
-            total_psi_te = np.append(te_radii_core, te_radii)
-            total_psi_ne = np.append(ne_radii_core, ne_radii)
-            total_ne = np.append(ne_core, ne)
-            total_ne_err = np.append(ne_err_core, ne_err)
-            total_te = np.append(te_core, te)
-            total_te_err = np.append(te_err_core, te_err)
+            total_psi_te = np.append(raw_te_psi_core, raw_te_psi_edge)
+            total_psi_ne = np.append(raw_ne_psi_core, raw_ne_psi_edge)
+            total_ne = np.append(raw_ne_core, raw_ne_edge)
+            total_ne_err = np.append(raw_ne_err_core, raw_ne_err_edge)
+            total_te = np.append(raw_te_core, raw_te_edge)
+            total_te_err = np.append(raw_te_err_core, raw_te_err_edge)
 
 
 
@@ -1551,7 +1543,7 @@ def master_fit_ne_Te_1D(shot, t_min=0, t_max=5000, scale_core_TS_to_TCI = False,
             if te_params is not None:
                 print(f'te reduced chi squared mtanh: {te_chi_squared:.2f}')
 
-
+            '''
             # Do not use the mtanh fit if there are fewer than 3 points in the pedestal region.
             if te_params is not None:
                 pedestal_start = te_params[0] - te_params[1]
@@ -1562,6 +1554,8 @@ def master_fit_ne_Te_1D(shot, t_min=0, t_max=5000, scale_core_TS_to_TCI = False,
                     te_params = None
                     te_covariance = None
                     te_fitted = None
+            '''
+            
 
             # Do not use the mtanh fit if the reduced chi-squared is below 0 or above 20.
             if te_params is not None:
@@ -1622,18 +1616,18 @@ def master_fit_ne_Te_1D(shot, t_min=0, t_max=5000, scale_core_TS_to_TCI = False,
 
             # plotting option for debugging/checking fit quality
             if plot_the_fits == True:
-                plt.errorbar(total_psi_te, total_te, yerr=total_te_err, fmt = 'o', color='red') # raw data
+                plt.errorbar(total_psi_te, total_te, yerr=total_te_err, fmt = 'o',mfc='white', color='red', alpha=0.7) # raw data
 
                 # option to plot the mtanh and cubic fits separately here
-                #if te_fitted is not None:
-                    #plt.plot(generated_psi_grid, te_fitted, label = rf'mtanh: $\chi^2$ = {te_chi_squared:.2f}')
-                #plt.plot(generated_psi_grid, te_fitted_cubic, label=rf'cubic: $\chi^2$ = {te_chi_squared_cubic:.2f}')
+                if te_fitted is not None:
+                    plt.plot(generated_psi_grid, te_fitted, label = rf'mtanh: $\chi^2$ = {te_chi_squared:.2f}', linewidth=2)
+                plt.plot(generated_psi_grid, te_fitted_cubic, label=rf'cubic: $\chi^2$ = {te_chi_squared_cubic:.2f}', linewidth=2)
 
                 # just plot the best fit
-                if te_fitted_best is not None:
-                    plt.plot(generated_psi_grid, te_fitted_best, label = rf'best fit: $\chi^2$ = {te_chi_squared_best:.2f}')
+                #if te_fitted_best is not None:
+                    #plt.plot(generated_psi_grid, te_fitted_best, label = rf'best fit: $\chi^2$ = {te_chi_squared_best:.2f}')
                 plt.grid(linestyle='--', alpha=0.3)
-                plt.xlabel('psi')
+                plt.xlabel(r'$\psi$')
                 plt.ylabel('Te (eV)')
                 plt.legend()
                 plt.title('Shot ' + str(shot) + ', Time ' + str(time) + ' ms, te fits')
@@ -1710,7 +1704,7 @@ def master_fit_ne_Te_1D(shot, t_min=0, t_max=5000, scale_core_TS_to_TCI = False,
             if ne_params is not None:
                 print(f'ne reduced chi squared mtanh: {ne_chi_squared:.2f}')            
 
-
+            '''
             # Do not use the mtanh fit if there are fewer than 3 points in the pedestal region.
             if ne_params is not None:
                 pedestal_start = ne_params[0] - ne_params[1]
@@ -1721,7 +1715,8 @@ def master_fit_ne_Te_1D(shot, t_min=0, t_max=5000, scale_core_TS_to_TCI = False,
                     ne_params = None
                     ne_covariance = None
                     ne_fitted = None
-                
+            '''
+            
             # Do not use the mtanh fit if the reduced chi-squared is below 0 or above 20.
             if ne_params is not None:
                 if ne_chi_squared <= 0 or ne_chi_squared > 20:
@@ -1778,18 +1773,18 @@ def master_fit_ne_Te_1D(shot, t_min=0, t_max=5000, scale_core_TS_to_TCI = False,
 
             # plotting option for debugging/checking fit quality
             if plot_the_fits == True:
-                plt.errorbar(total_psi_ne, total_ne, yerr=total_ne_err, fmt = 'o', color='green')
+                plt.errorbar(total_psi_ne, total_ne, yerr=total_ne_err, mfc = 'white', fmt = 'o', color='green', alpha=0.7)
                 # can plot the mtanh and cubic fits separately here
-                #if ne_fitted is not None:
-                     #plt.plot(generated_psi_grid, ne_fitted, label = rf'mtanh: $\chi^2$ = {ne_chi_squared:.2f}')
-                #plt.plot(generated_psi_grid, ne_fitted_cubic, label= rf'cubic: $\chi^2$ = {ne_chi_squared_cubic:.2f}')
+                if ne_fitted is not None:
+                     plt.plot(generated_psi_grid, ne_fitted, label = rf'mtanh: $\chi^2$ = {ne_chi_squared:.2f}', linewidth=2)
+                plt.plot(generated_psi_grid, ne_fitted_cubic, label= rf'cubic: $\chi^2$ = {ne_chi_squared_cubic:.2f}', linewidth=2)
 
                 # or just plot the best fit
-                if ne_fitted_best is not None:
-                    plt.plot(generated_psi_grid, ne_fitted_best, label = rf'best fit: $\chi^2$ = {ne_best_chi_squared:.2f}')
+                #if ne_fitted_best is not None:
+                    #plt.plot(generated_psi_grid, ne_fitted_best, label = rf'best fit: $\chi^2$ = {ne_best_chi_squared:.2f}')
                 plt.grid(linestyle='--', alpha=0.3)
-                plt.xlabel('psi')
-                plt.ylabel('ne (m^-3)')
+                plt.xlabel(r'$\psi$')
+                plt.ylabel(r'$n_e$ ($m^{-3}$)')
                 plt.legend()
                 plt.title('Shot ' + str(shot) + ', Time ' + str(time) + ' ms, ne fits')
                 plt.show()
@@ -2495,4 +2490,4 @@ def master_fit_ne_Te_2D_window_smoothing(shot, t_min, t_max, smoothing_window = 
 
 
 
-#master_fit_ne_Te_1D(1030523030, 410, 1000, plot_the_fits=True, remove_zeros_before_fitting=False)
+master_fit_ne_Te_1D(1110215014, 920, 1000, plot_the_fits=True, remove_zeros_before_fitting=True)
