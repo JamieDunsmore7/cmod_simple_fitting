@@ -888,8 +888,10 @@ def get_twopt_shift_from_edge_Te_fit(shot, time_in_s, edge_psi, edge_Te, edge_Te
     lam_T_nl = 1 # unimportant placeholder
 
     Te_sep_eV = Teu_2pt_model(shot, time_in_s, lam_T_nl, geqdsk, pressure_opt = 3, lambdaq_opt=1)
-    new_x, shift = apply_2pt_shift(generated_xvalues, te_fitted, Te_sep_eV, 1) #separatrix in psi coords is just 1
+    new_x, shift = apply_2pt_shift(generated_xvalues, te_fitted, Te_sep_eV, 1, only_shift_edge=False) #separatrix in psi coords is just 1
 
+    print('Te_sep_eV', Te_sep_eV)
+    print('shift', shift)
   
 
     return Te_sep_eV, shift
@@ -1285,7 +1287,8 @@ def evolve_fits_by_radius_example_for_panel_plots(times, psi_grid, yvalues):
 
 
 
-def master_fit_ne_Te_1D(shot, t_min=0, t_max=5000, scale_core_TS_to_TCI = False, set_Te_floor_to_20eV = True, add_articifial_core_TS_error_where_missing = True, remove_zeros_before_fitting = False, plot_the_fits = False):
+def master_fit_ne_Te_1D(shot, t_min=0, t_max=5000, scale_core_TS_to_TCI = False, set_Te_floor_to_20eV = True, add_articifial_core_TS_error_where_missing = True, 
+                        remove_zeros_before_fitting = False, add_zero_in_SOL = True, shift_to_2pt_model=False, plot_the_fits = False):
     '''
     INPUTS
     --------
@@ -1428,9 +1431,11 @@ def master_fit_ne_Te_1D(shot, t_min=0, t_max=5000, scale_core_TS_to_TCI = False,
                 raw_te_psi_core = raw_psi_core
                 raw_ne_psi_core = raw_psi_core
 
+
             # Add in a zero in the SOL at a pre-specified psi value (hardcoded in the function as 1.05).
-            #raw_te_psi_edge, raw_te_edge, raw_te_err_edge = add_SOL_zeros_in_psi_coords(raw_te_psi_edge, raw_te_edge, raw_te_err_edge)
-            #raw_ne_psi_edge, raw_ne_edge, raw_ne_err_edge = add_SOL_zeros_in_psi_coords(raw_ne_psi_edge, raw_ne_edge, raw_ne_err_edge)
+            if add_zero_in_SOL == True:
+                raw_te_psi_edge, raw_te_edge, raw_te_err_edge = add_SOL_zeros_in_psi_coords(raw_te_psi_edge, raw_te_edge, raw_te_err_edge)
+                raw_ne_psi_edge, raw_ne_edge, raw_ne_err_edge = add_SOL_zeros_in_psi_coords(raw_ne_psi_edge, raw_ne_edge, raw_ne_err_edge)
 
 
             # combine the core and edge data
@@ -1623,29 +1628,7 @@ def master_fit_ne_Te_1D(shot, t_min=0, t_max=5000, scale_core_TS_to_TCI = False,
             if set_Te_floor_to_20eV == True:
                 if te_fitted_best is not None:
                     te_fitted_best[te_fitted_best < 20] = 20
-
-
-            # plotting option for debugging/checking fit quality
-            if plot_the_fits == True:
-                plt.errorbar(total_psi_te, total_te, yerr=total_te_err, fmt = 'o',mfc='white', color='red', alpha=0.7) # raw data
-
-                # option to plot the mtanh and cubic fits separately here
-                if te_fitted is not None:
-                    plt.plot(generated_psi_grid, te_fitted, label = rf'mtanh: $\chi^2$ = {te_chi_squared:.2f}', linewidth=2)
-                plt.plot(generated_psi_grid, te_fitted_cubic, label=rf'cubic: $\chi^2$ = {te_chi_squared_cubic:.2f}', linewidth=2)
-
-                # just plot the best fit
-                #if te_fitted_best is not None:
-                    #plt.plot(generated_psi_grid, te_fitted_best, label = rf'best fit: $\chi^2$ = {te_chi_squared_best:.2f}')
-                plt.grid(linestyle='--', alpha=0.3)
-                plt.xlabel(r'$\psi$')
-                plt.ylabel('Te (eV)')
-                plt.legend()
-                plt.title('Shot ' + str(shot) + ', Time ' + str(time) + ' ms, te fits')
-                plt.show()
-            
-
-            
+               
             ### FIT NE PROFILE ###
 
 
@@ -1782,20 +1765,86 @@ def master_fit_ne_Te_1D(shot, t_min=0, t_max=5000, scale_core_TS_to_TCI = False,
                 number_of_ne_failed_fits += 1
 
 
+            # OPTION TO SHIFT THE DATA AND FIT ACCORDING TO THE 2-PT MODEL
+            if shift_to_2pt_model == True:
+                Te_sep_eV = Teu_2pt_model(shot, time_in_s, lam_T_mm=1, geqdsk=4, pressure_opt = 3, lambdaq_opt=1) #lam_T_mm and geqdsk are just placeholders here. They don't do anything.
+                new_x, shift = apply_2pt_shift(generated_psi_grid, te_fitted_best, Te_sep_eV, 1, only_shift_edge=True) #separatrix in psi coords is just 1
+                print('T SEP: ', Te_sep_eV)
+                print('SHIFT: ', shift)
+
+                plt.scatter(total_psi_te, total_te, color='red')
+                plt.plot(generated_psi_grid, te_fitted_best, label = 'Original', color='red')
+
+                plt.scatter(total_psi_te + shift, total_te, color='green')
+                plt.plot(new_x, te_fitted_best, label = 'Shifted', color='green')
+                plt.axvline(1, color='black', linestyle='--', alpha=1, label = 'New Sep: ' + str(int(Te_sep_eV)) + 'eV')
+                plt.axvline(1 - shift, color='purple', linestyle='--', alpha=0.5, label = 'Old Sep')
+
+                # now interpolate back onto the generated psi grid
+                te_interp_function = interp1d(new_x, te_fitted, fill_value='extrapolate')
+                te_fitted_best = te_interp_function(generated_psi_grid)
+
+                plt.plot(generated_psi_grid, te_fitted_best, label = 'Interpolated', color='blue')
+                plt.legend()
+                plt.show()
+
+                ne_interp_function = interp1d(new_x, ne_fitted_best, fill_value='extrapolate')
+                ne_fitted_best = ne_interp_function(generated_psi_grid)
+            else:
+                shift = 0
+
+
+
             # plotting option for debugging/checking fit quality
             if plot_the_fits == True:
-                plt.errorbar(total_psi_ne, total_ne, yerr=total_ne_err, mfc = 'white', fmt = 'o', color='green', alpha=0.7)
+
+                # this assumes that the 2-point shift has only been applied to points in the edge
+                edge_mask = total_psi_te > 0.8
+                core_mask = total_psi_te <= 0.8
+                plt.errorbar(total_psi_te[edge_mask]+shift, total_te[edge_mask], yerr=total_te_err[edge_mask], fmt = 'o',mfc='white', color='red', alpha=0.7) # raw data
+                plt.errorbar(total_psi_te[core_mask], total_te[core_mask], yerr=total_te_err[core_mask], fmt = 'o',mfc='white', color='red', alpha=0.7) # raw data
+                
+                # option to plot the mtanh and cubic fits separately here
+                #if te_fitted is not None:
+                    #plt.plot(generated_psi_grid, te_fitted, label = rf'mtanh: $\chi^2$ = {te_chi_squared:.2f}', linewidth=2)
+                #plt.plot(generated_psi_grid, te_fitted_cubic, label=rf'cubic: $\chi^2$ = {te_chi_squared_cubic:.2f}', linewidth=2)
+
+                # just plot the best fit
+                if te_fitted_best is not None:
+                    plt.plot(generated_psi_grid, te_fitted_best, label = rf'best fit: $\chi^2$ = {te_chi_squared_best:.2f}')
+                plt.grid(linestyle='--', alpha=0.3)
+                plt.xlabel(r'$\psi$')
+                plt.ylabel('Te (eV)')
+                if shift_to_2pt_model == True:
+                    plt.axvline(1, color='black', linestyle='--', alpha=1, label = 'New Sep: ' + str(int(Te_sep_eV)) + 'eV')
+                    plt.axvline(1 - shift, color='purple', linestyle='--', alpha=0.5, label = 'Old Sep')
+                plt.legend()
+                plt.title('Shot ' + str(shot) + ', Time ' + str(time) + ' ms, te fits')
+                plt.show()
+
+            # plotting option for debugging/checking fit quality
+            if plot_the_fits == True:
+
+                # this assumes that the 2-point shift has only been applied to points in the edge
+                edge_mask = total_psi_ne > 0.8
+                core_mask = total_psi_ne <= 0.8
+                plt.errorbar(total_psi_ne[edge_mask]+shift, total_ne[edge_mask], yerr=total_ne_err[edge_mask], fmt = 'o',mfc='white', color='green', alpha=0.7) # raw data
+                plt.errorbar(total_psi_ne[core_mask], total_ne[core_mask], yerr=total_ne_err[core_mask], fmt = 'o',mfc='white', color='green', alpha=0.7) # raw data
+                
                 # can plot the mtanh and cubic fits separately here
-                if ne_fitted is not None:
-                     plt.plot(generated_psi_grid, ne_fitted, label = rf'mtanh: $\chi^2$ = {ne_chi_squared:.2f}', linewidth=2)
-                plt.plot(generated_psi_grid, ne_fitted_cubic, label= rf'cubic: $\chi^2$ = {ne_chi_squared_cubic:.2f}', linewidth=2)
+                #if ne_fitted is not None:
+                     #plt.plot(generated_psi_grid, ne_fitted, label = rf'mtanh: $\chi^2$ = {ne_chi_squared:.2f}', linewidth=2)
+                #plt.plot(generated_psi_grid, ne_fitted_cubic, label= rf'cubic: $\chi^2$ = {ne_chi_squared_cubic:.2f}', linewidth=2)
 
                 # or just plot the best fit
-                #if ne_fitted_best is not None:
-                    #plt.plot(generated_psi_grid, ne_fitted_best, label = rf'best fit: $\chi^2$ = {ne_best_chi_squared:.2f}')
+                if ne_fitted_best is not None:
+                    plt.plot(generated_psi_grid, ne_fitted_best, label = rf'best fit: $\chi^2$ = {ne_best_chi_squared:.2f}')
                 plt.grid(linestyle='--', alpha=0.3)
                 plt.xlabel(r'$\psi$')
                 plt.ylabel(r'$n_e$ ($m^{-3}$)')
+                if shift_to_2pt_model == True:
+                    plt.axvline(1, color='black', linestyle='--', alpha=1, label = 'New Sep: ' + str(int(Te_sep_eV)) + 'eV')
+                    plt.axvline(1 - shift, color='purple', linestyle='--', alpha=0.5, label = 'Old Sep')
                 plt.legend()
                 plt.title('Shot ' + str(shot) + ', Time ' + str(time) + ' ms, ne fits')
                 plt.show()
@@ -1882,7 +1931,7 @@ def master_fit_ne_Te_2D_window_smoothing(shot, t_min, t_max, smoothing_window = 
 
     # Scale the core Thomson data by the interferometry data.
     # NOTE: this is hardcoded to scale between 500ms and 1500ms for every shot.
-    ne_array_core = scale_core_Thomson(shot, Thomson_times_core, ne_array_core) # SCALE THE CORE THOMSON DATA BY THE INTERFEROMETRY DATA
+    #ne_array_core = scale_core_Thomson(shot, Thomson_times_core, ne_array_core) # SCALE THE CORE THOMSON DATA BY THE INTERFEROMETRY DATA
 
 
     #cycle through all the time points and fit the Thomson data
@@ -1938,10 +1987,9 @@ def master_fit_ne_Te_2D_window_smoothing(shot, t_min, t_max, smoothing_window = 
 
 
 
-            # just fit the Te profile at the edge to get the 2-pt shift
 
-            te_radii, te, te_err = remove_zeros(raw_rmid, raw_te, raw_te_err, remove_all=True)
-            ne_radii, ne, ne_err = remove_zeros(raw_rmid, raw_ne, raw_ne_err, remove_all=True)
+            te_radii, te, te_err = remove_zeros(raw_rmid, raw_te, raw_te_err, core_only=True)
+            ne_radii, ne, ne_err = remove_zeros(raw_rmid, raw_ne, raw_ne_err, core_only=True)
 
             #Switch from Rmid to psi coordinates here using eqtools
             te_radii = e.rho2rho('Rmid', 'psinorm', te_radii, time_in_s)
@@ -1961,6 +2009,8 @@ def master_fit_ne_Te_2D_window_smoothing(shot, t_min, t_max, smoothing_window = 
 
             te_radii = te_radii + twopt_shift_psi
             ne_radii = ne_radii + twopt_shift_psi
+
+            print('TWO PT SHIFT: ', twopt_shift_psi)
 
             # save the original arrays before adding the zer
             total_psi_te = np.append(te_radii_core, te_radii)
@@ -2201,6 +2251,12 @@ def master_fit_ne_Te_2D_window_smoothing(shot, t_min, t_max, smoothing_window = 
 
             list_of_te_fitted_std_at_Thomson_times.append(list_of_te_fitted_std)
             list_of_ne_fitted_std_at_Thomson_times.append(list_of_ne_fitted_std)
+
+            plt.errorbar(list_of_raw_ne_xvalues_shifted, list_of_raw_ne, yerr=list_of_raw_ne_err, fmt = 'o', color='green')
+            plt.plot(generated_psi_grid, ne_fitted_on_generated_psi_grid)
+            plt.axvline(x=1, color='black', linestyle='--')
+            plt.title('Time = ' + str(time) + 'ms')
+            plt.show()
 
 
 
@@ -2501,4 +2557,6 @@ def master_fit_ne_Te_2D_window_smoothing(shot, t_min, t_max, smoothing_window = 
 
 
 
-master_fit_ne_Te_1D(1110215014, 920, 1000, plot_the_fits=True, remove_zeros_before_fitting=True)
+#master_fit_ne_Te_1D(1091210028, 587, 700, plot_the_fits=True, remove_zeros_before_fitting=True, shift_to_2pt_model=True)
+
+master_fit_ne_Te_2D_window_smoothing(1091210028, 587, 700, smoothing_window=15)
