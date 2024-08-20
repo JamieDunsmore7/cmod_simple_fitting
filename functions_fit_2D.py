@@ -783,7 +783,7 @@ def add_SOL_zeros_in_psi_coords(xdata, ydata, y_error):
 ### 2-PT MODEL FUNCTIONS ###
 
 
-def apply_2pt_shift(xvalues, Te_values, sep_Te, old_sep):
+def apply_2pt_shift(xvalues, Te_values, sep_Te, old_sep, only_shift_edge = True):
         '''
         INPUTS
         --------
@@ -791,6 +791,8 @@ def apply_2pt_shift(xvalues, Te_values, sep_Te, old_sep):
         Te_values: 1D array of Te values
         sep_Te: float, the separatrix Te in eV according to the 2-point model
         old_sep: float, the separatrix radius before the shift
+        only_shift_edge: boolean, if True, only shift data points with psi > 0.8. 
+                        NOTE: xvalues must be in psi coords if this is turned on.
 
         RETURNS
         --------
@@ -810,6 +812,15 @@ def apply_2pt_shift(xvalues, Te_values, sep_Te, old_sep):
                 shift = old_sep - new_sep #this does make sense, because we want to shift the Thomson data rather than the sep position
                 break
         
+        if only_shift_edge == False:
+            shifted_x = xvalues + shift
+        else:
+            xvalues_to_shift = xvalues[xvalues > 0.8]
+            xvalues_to_keep = xvalues[xvalues <= 0.8]
+            shifted_x = xvalues_to_shift + shift
+            shifted_x = np.append(xvalues_to_keep, shifted_x)
+
+
         shifted_x = xvalues + shift
         return shifted_x, shift
 
