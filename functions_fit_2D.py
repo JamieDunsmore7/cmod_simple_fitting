@@ -1099,7 +1099,7 @@ def Osborne_linear_initial_guesses(radius, thomson_value):
     """
     INPUTS
     --------
-    radius: 1D array of x-values (can be in any coordinate system)
+    radius: 1D array of x-values (can be in any coordinate system). NOTE: works best if only the edge data is used
     thomson_value: 1D array of y-values (ne or Te)
 
     RETURNS
@@ -1481,7 +1481,7 @@ def master_fit_ne_Te_1D(shot, t_min=0, t_max=5000, scale_core_TS_to_TCI = False,
 
             # Try to get some reasonable initial guesses to help the mtanh fits converge.
             try:
-                te_guesses = Osborne_linear_initial_guesses(te_radii, te)
+                te_guesses = Osborne_linear_initial_guesses(raw_ne_psi_edge, raw_te_edge)
                 te_guesses.extend([0,0]) #just for the quadratic and cubic terms
             except:
                 te_guesses = None
@@ -1640,7 +1640,7 @@ def master_fit_ne_Te_1D(shot, t_min=0, t_max=5000, scale_core_TS_to_TCI = False,
 
             # Try to get some reasonable initial guesses to help the mtanh fits converge.
             try:
-                ne_guesses = Osborne_linear_initial_guesses(ne_radii, ne)
+                ne_guesses = Osborne_linear_initial_guesses(raw_ne_psi_edge, raw_ne_edge)
                 ne_guesses[2] = ne_guesses[2] / 1e20 #just divide height and base by 1e20 to make the minimisation easier
                 ne_guesses[3] = ne_guesses[3] / 1e20
                 ne_guesses.extend([0,0]) #just for the quadratic and cubic terms
