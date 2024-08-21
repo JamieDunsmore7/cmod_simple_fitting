@@ -2885,7 +2885,7 @@ def evolve_fits_by_radius(new_times, old_times, psi_grid, yvalues, y_error):
 
 
 
-def master_fit_ne_Te_2D_quadratic(shot, t_min, t_max, time_window_for_evolution = None):
+def master_fit_ne_Te_2D_quadratic(shot, t_min, t_max, time_window_for_evolution = None, plot = True):
     '''
     INPUTS
     ------
@@ -2925,8 +2925,6 @@ def master_fit_ne_Te_2D_quadratic(shot, t_min, t_max, time_window_for_evolution 
     list_of_te_fitted_at_Thomson_times = np.array(list_of_te_fitted_at_Thomson_times)
     list_of_ne_fitted_at_Thomson_times = np.array(list_of_ne_fitted_at_Thomson_times)
 
-
-
     # PLACEHOLDER WITH 10pc error for the moment. TODO: proper errors
     list_of_te_fitted_err_at_Thomson_times = 0.1*list_of_te_fitted_at_Thomson_times
     list_of_ne_fitted_err_at_Thomson_times = 0.1*list_of_ne_fitted_at_Thomson_times
@@ -2950,26 +2948,19 @@ def master_fit_ne_Te_2D_quadratic(shot, t_min, t_max, time_window_for_evolution 
     else:
         output_time_grid = np.arange(t_min, t_max, 1)
 
-
-
-
-
-    evolve_fits_by_radius_example_for_panel_plots(list_of_Thomson_times_ne_ms_norm, generated_psi_grid, list_of_ne_fitted_at_Thomson_times)
-    evolve_fits_by_radius_example_for_panel_plots(list_of_Thomson_times_te_ms_norm, generated_psi_grid, list_of_te_fitted_at_Thomson_times)
+    if plot == True:
+        # Plot to show how the quadratic fit actually looks
+        evolve_fits_by_radius_example_for_panel_plots(list_of_Thomson_times_ne_ms_norm, generated_psi_grid, list_of_ne_fitted_at_Thomson_times)
+        evolve_fits_by_radius_example_for_panel_plots(list_of_Thomson_times_te_ms_norm, generated_psi_grid, list_of_te_fitted_at_Thomson_times)
     
 
-
+    # Evolve the fits in time with a qaudatic
     new_ne_values, new_ne_err = evolve_fits_by_radius(output_time_grid, list_of_Thomson_times_ne_ms_norm, generated_psi_grid, list_of_ne_fitted_at_Thomson_times, list_of_ne_fitted_err_at_Thomson_times)
     new_Te_values, new_Te_err = evolve_fits_by_radius(output_time_grid, list_of_Thomson_times_te_ms_norm, generated_psi_grid, list_of_te_fitted_at_Thomson_times, list_of_te_fitted_err_at_Thomson_times)
 
     Rmid_grid = psi_to_Rmid_map(shot, t_min, t_max, generated_psi_grid, output_time_grid) #this is a 2D array of Rmid values at every psi value at every time point
 
     return output_time_grid, generated_psi_grid, Rmid_grid, new_ne_values, new_ne_err, new_Te_values, new_Te_err #returns ne and Te profiles at every ms.
-
-
-    
-    
-
 
 
 
