@@ -11,14 +11,6 @@ from scipy.interpolate import interp1d, interp2d
 sys.path.append('/home/jduns/Documents/phd_research/year_1/ly_alpha_workflow/')
 
 from functions_fit_2D import master_fit_ne_Te_2D_window_smoothing, master_fit_ne_Te_2D_quadratic
-#from functions_profile_fitting import Osborne_Tanh_linear, Osborne_linear_initial_guesses, remove_zeros, Osborne_Tanh_linear_gradient, add_SOL_zeros, master_fit_ne_Te_full_profile_2D
-#from pedestal_evolution_functions import fit_top, fit_centre, fit_pedestal_evolution_full, pedestal_top_mtanh, linear_function, quadratic_function, fit_ne_pedestal_evolution_Hmode, fit_te_pedestal_evolution_Hmode
-#from functions_mapping import get_limiter_R_z, get_separatrix_midplane, apply_2pt_shift, Ly2Thom_Time, map_at_arbitrary_t
-#from functions_neutral_calculations import Lya_to_ion_rate, Lya_to_pflux, get_Deff, Ion_to_pflux, Ion_to_pflux_dndt, Ion_to_pflux_ion, Ion_to_pflux_best
-#from scipy import stats
-#from mit_edge_profiles.lyman_data import get_geqdsk_cmod
-#from mit_edge_profiles.fit_2D import Teu_2pt_model
-#from functions_inversions import tomoCMOD
 import eqtools
 from eqtools import CModEFIT
 
