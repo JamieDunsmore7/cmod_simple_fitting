@@ -25,9 +25,26 @@ from eqtools import CModEFIT
 
 def compare_ts_tci(shot, tmin, tmax, nl_num=4):
     '''
-    Returns the line-integrated density from the synthetic TCI diagnostic (created from the TS data) and the actual TCI diagnostic.
-    Returns separate arrays for each laser.
-    Values returned on the Thomson timebase.
+    INPUTS
+    --------
+    shot: C-Mod shot number (integer)
+    tmin: minimum time in seconds
+    tmax: maximum time in seconds
+    nl_num: interferometer chord to use (4 is default as it is most reliably on during operation)
+
+    RETURNS
+    --------
+    nl_ts1: 1D array of line-integrated density values from the synthetic TCI diagnostic for Thomson laser 1
+    nl_ts2: 1D array of line-integrated density values from the synthetic TCI diagnostic for Thomson laser 2
+    nl_tci1: 1D array of line-integrated density values from the actual TCI diagnostic (on the timebase of Thomson laser 1)
+    nl_tci2: 1D array of line-integrated density values from the actual TCI diagnostic (on the timebase of Thomson laser 2)
+    time1: 1D array of times in seconds for the Thomson laser 1
+    time2: 1D array of times in seconds for the Thomson laser 2
+
+    DESCRIPTION
+    --------
+    Takes the Thomson data from each laser pulse and returns the line-integrated density along an interferometer chord 
+    in order to compare this to the actual TCI data. Returns separate arrays for each Thomson laser.
     '''
 
     nl_ts1 = 1e32
@@ -79,6 +96,35 @@ def compare_ts_tci(shot, tmin, tmax, nl_num=4):
 
         if cnt > 0:
 
+            print('HERE')
+            print(tci_t)
+            print(tci)
+
+            print(len(tci_t))
+            print(len(tci))
+
+            print(tci_t.shape)
+            print(tci.shape)
+
+            tci_t = np.array(tci_t)
+            tci = np.array(tci)
+
+            tci = tci.flatten()
+
+            if not np.all(np.diff(tci_t) > 0):
+                print("tci_t is not monotonically increasing")
+
+            if not np.all(np.isfinite(tci_t)) or not np.all(np.isfinite(tci)):
+                print("Non-finite values found in tci_t or tci")
+
+
+            print(ts_time1[ind])
+            print(len(ts_time1[ind]))
+
+            plt.plot(tci_t, tci)
+            plt.show()
+
+
             nl_tci1 = interp1d(tci_t, tci)(ts_time1[ind])
             nl_ts1 = interp1d(nl_ts_t, nl_ts)(ts_time1[ind])
             time1 = ts_time1[ind]
@@ -108,7 +154,17 @@ def compare_ts_tci(shot, tmin, tmax, nl_num=4):
 
 def integrate_ts2tci(shot, tmin, tmax, nl_num=4):
     '''
-    Integrate the synthetic TCI data (from the TS data) along the chord to get a line-integrated density.
+    INPUTS
+    --------
+    shot: C-Mod shot number (integer)
+    tmin: minimum time in seconds
+    tmax: maximum time in seconds
+    nl_num: interferometer chord to use (4 is default as it is most reliably on during operation)
+
+    RETURNS
+    --------
+    nl_ts: 1D array of line-integrated density values from the synthetic TCI diagnostic (created from the TS data)
+    nl_ts_t: corresponding timebase
     '''
 
     shot_str = str(shot)
@@ -160,9 +216,25 @@ def integrate_ts2tci(shot, tmin, tmax, nl_num=4):
 
 def map_ts2tci(shot, tmin, tmax, nl_num=4):
     '''
-    Maps the Thomson data to one of the TCI interferometer chords (specified in the nl_num argument)
-    nl04 is used because it is the most reliable (it's used for the feedback control).
-    If nl04 isn't working, there won't be a proper shot.
+    INPUTS
+    --------
+    shot: C-Mod shot number (integer)
+    tmin: minimum time in seconds
+    tmax: maximum time in seconds
+    nl_num: interferometer chord to use (4 is default as it is most reliably on during operation)
+
+    RETURNS
+    --------
+    t: 1D array of times of the output synthetic TCI system
+    z: 2D array of z values of the output synthetic TCI system
+    n_e: 2D array of ne values at each z value at each time point of the synthetic TCI system
+    n_e_sig: 2D array of ne errors at each z value at each time point of the synthetic TCI system
+
+    DESCRIPTION
+    --------
+    This is the main part of the algorithm. The Thomson scattering data is mapped in space to lie along the chosen TCI chord.
+    This is done by mapping the TS data from RZ space to psi space, and then mapping from psi space to the TCI radius.
+    Once this has been done, the synthetic TCI data can be integrated in integrated_ts2tci to give a line-integrated density.
     '''
 
     shot_str = str(shot)
@@ -320,7 +392,20 @@ def map_ts2tci(shot, tmin, tmax, nl_num=4):
 
 def parse_yags(shot):
     '''
-    Function to return the time indices of when the two lasers fire.
+    INPUTS
+    --------
+    shot: C-Mod shot number (integer)
+
+    RETURNS
+    --------
+    n_yag1: number of times laser 1 fires
+    n_yag2: number of times laser 2 fires
+    indices1: time indices of when laser 1 fires
+    indices2: time indices of when laser 2 fires
+
+    DESCRIPTION
+    --------
+    Function to return the time indices of when the two Thomson lasers fire.
     '''
 
 
@@ -388,7 +473,22 @@ def parse_yags(shot):
 
 def get_ts_tci_ratio(shot, tmin, tmax, nl_num = 4):
     '''
-    Compares the actual TCI data over the whole shot to the synthetic TCI data (created from the TS data over the same time window)
+    INPUTS
+    --------
+    shot: C-Mod shot number (integer)
+    tmin: minimum time in seconds
+    tmax: maximum time in seconds
+    nl_num: interferometer chord to use (4 is default as it is most reliably on during operation)
+
+    RETURNS
+    --------
+    mult_factor1: multiplication factor that should be applied to Thomson laser 1 to match the TCI data over the shot
+    mult_factor2: multiplication factor that should be applied to Thomson laser 2 to match the TCI data over the shot
+    mult_factor: average of the two multiplicative factors
+
+    DESCRIPTION
+    --------
+    Compares the actual TCI data over the shot to the synthetic TCI data (created from the TS data over the same time window)
     Calculates multiplicative factors to be applied to the TS data such that it matches the TCI data.
     '''
 
@@ -430,10 +530,21 @@ def get_ts_tci_ratio(shot, tmin, tmax, nl_num = 4):
 
 def scale_core_Thomson(shot, core_time_ms, core_ne):
     '''
-    Scales the core Thomson to the TCI data for a given shot.
-    core_time_ms and core_ne are arrays. Time should be in ms.
-    NOTE: the scaling is currently hardcoded to occur between 500ms and 1500ms. This may need to be changed for shots of different lengths.
-    TODO: Adjust the scaling to be based on a more flexible metric.
+    INPUTS
+    --------
+    shot: C-Mod shot number (integer)
+    core_time_ms: 1D array of time points for the core Thomson data in ms (not sure this is actually vital as an input)
+    core_ne: 2D array of electron density values for the core Thomson data (only needed to be multiplied by the scaling factor for output)
+
+    RETURNS
+    --------
+    core_ne: 2D array of electron density values for the core Thomson data, scaled to match the TCI data
+
+    DESCRIPTION
+    --------
+    Takes in the raw core Thomson data for a shot, and scales it to match the TCI data between 0.5s and 1.5s.
+    The time window chosen is hopefully long enough to get a meaningful scaling factor, and usually reflects the time when the plasma is most stable for C-Mod shots.
+    Requires that the current be >0.4MA at 0.5s and 1.5s before scaling the data (this just ensures that we have a reasonable plasma).
     '''
 
     ip_node = MDSplus.Tree('cmod', shot).getNode('\ip')
