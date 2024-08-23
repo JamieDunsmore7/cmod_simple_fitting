@@ -251,8 +251,12 @@ def map_ts2tci(shot, tmin, tmax, nl_num=4):
     ne_ts_err = ne_ts_err[ind,:]
 
 
-    #gets the magnetic equilibrium at every time point - note EFIT20 is the TS timebase
-    e = eqtools.CModEFIT.CModEFITTree(int(shot), tree='EFIT20')
+    #gets the magnetic equilibrium at every time point - note EFIT20 is the TS timebase. If this doesn't work, try ANALYSIS (the main one)
+    try:
+        e = eqtools.CModEFIT.CModEFITTree(int(shot), tree='EFIT20')
+    except:
+        e = eqtools.CModEFIT.CModEFITTree(int(shot), tree='ANALYSIS')
+
 
     r_ts = np.full(len(z_ts), r_ts) #just to make r_ts the same length as z_ts
 
