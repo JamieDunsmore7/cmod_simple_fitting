@@ -1287,7 +1287,7 @@ def evolve_fits_by_radius_example_for_panel_plots(times, psi_grid, yvalues):
 
 
 
-def master_fit_ne_Te_1D(shot, t_min=0, t_max=5000, scale_core_TS_to_TCI = False, set_Te_floor_to_20eV = True, add_articifial_core_TS_error_where_missing = True, 
+def master_fit_ne_Te_1D(shot, t_min=0, t_max=5000, scale_core_TS_to_TCI = False, set_Te_floor_to_20eV = True, set_minimum_errorbar = True, 
                         remove_zeros_before_fitting = True, add_zero_in_SOL = True, shift_to_2pt_model=False, plot_the_fits = False,
                         return_processed_raw_data = False):
     '''
@@ -1299,7 +1299,7 @@ def master_fit_ne_Te_1D(shot, t_min=0, t_max=5000, scale_core_TS_to_TCI = False,
 
     scale_core_TS_to_TCI: boolean, if True, the core Thomson data is scaled to match the interferometry data over the course of the shot.
     set_Te_floor_to_20eV: boolean, if True, the Te floor is set to 20eV if the fit goes below this value.
-    add_articifial_core_TS_error_where_missing: boolean, if True, the error bars in the core are set to 10% if they don't exist yet (this is because quite often the error bars have been set to zero in the core, messing up the fits)
+    set_minimum_errorbar: boolean, if True, a minimum errorbar is set for all points (this is because sometimes the error bars have been set to zero in the core, messing up the fits)
     remove_zeros_before_fitting: boolean, if True, zeros are removed from the data before fitting. Deafult is to only remove zeros < psi = 1, but this can be modified.
     add_zero_in_SOL: boolean, if True, a zero is added at the SOL edge to help the mtanh fit (hardcoded at psi=1.05).
     shift_to_2pt_model: boolean, if True, the Thomson data and fits are shifted post-fit to align the separatrix Te with the 2-point model prediction.
@@ -1423,11 +1423,6 @@ def master_fit_ne_Te_1D(shot, t_min=0, t_max=5000, scale_core_TS_to_TCI = False,
                 print('No Edge Thomson data at this time point. Skipping.')
                 continue
 
-            if add_articifial_core_TS_error_where_missing == True:
-                raw_ne_err_core[raw_ne_err_core == 0] = raw_ne_core[raw_ne_err_core==0]*0.1 # set error bars in the core to 10% if they don't exist yet
-                raw_te_err_core[raw_te_err_core == 0] = raw_te_core[raw_te_err_core==0]*0.1 # set error bars in the core to 10% if they don't exist yet
-
-
             #Switch from Rmid to psi coordinates here using eqtools
             raw_psi_edge = e.rho2rho('Rmid', 'psinorm', raw_rmid_edge, time_in_s)
             raw_psi_core = e.rho2rho('Rmid', 'psinorm', raw_rmid_core, time_in_s)
@@ -1446,7 +1441,7 @@ def master_fit_ne_Te_1D(shot, t_min=0, t_max=5000, scale_core_TS_to_TCI = False,
                 raw_te_psi_edge = raw_psi_edge
                 raw_ne_psi_edge = raw_psi_edge
                 raw_te_psi_core = raw_psi_core
-                raw_ne_psi_core = raw_psi_core
+                raw_ne_psi_core = raw_psi_core                
 
 
             # Add in a zero in the SOL at a pre-specified psi value (hardcoded in the function as 1.05).
@@ -1462,6 +1457,13 @@ def master_fit_ne_Te_1D(shot, t_min=0, t_max=5000, scale_core_TS_to_TCI = False,
             total_ne_err = np.append(raw_ne_err_core, raw_ne_err_edge)
             total_te = np.append(raw_te_core, raw_te_edge)
             total_te_err = np.append(raw_te_err_core, raw_te_err_edge)
+
+            # Sometimes, the error bars in the core are set to zero in the tree (or are very small).
+            # This flag artificially places a minimum reasonable error bar on all points to avoid problems like this.
+            if set_minimum_errorbar == True:
+                total_ne_err[total_ne_err < 2e19] = np.maximum(2e19, total_ne_err[total_ne_err < 2e19] * 0.1)
+                total_te_err[total_te_err < 20] = np.maximum(20, total_te_err[total_te_err < 100] * 0.1)
+
 
 
 
