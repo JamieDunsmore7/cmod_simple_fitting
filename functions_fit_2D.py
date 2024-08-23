@@ -3113,8 +3113,8 @@ def master_fit_ne_Te_2D_quadratic(shot, t_min, t_max, time_window_for_evolution 
 
 
 
-#master_fit_ne_Te_1D(1091210028, 587, 700, plot_the_fits=True, remove_zeros_before_fitting=True, shift_to_2pt_model=True)
+master_fit_ne_Te_1D(1030523030, 587, 700, plot_the_fits=True, remove_zeros_before_fitting=True, shift_to_2pt_model=False, scale_core_TS_to_TCI=True)
 
 #master_fit_ne_Te_2D_window_smoothing(1091210027, 587, 700, smoothing_window=15)
 
-master_fit_2D_alt(1091210027, 587, 700, smoothing_window=15)
+#master_fit_2D_alt(1091210027, 587, 700, smoothing_window=15)
