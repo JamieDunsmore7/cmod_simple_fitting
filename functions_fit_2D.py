@@ -435,6 +435,20 @@ def scale_core_Thomson(shot, core_time_ms, core_ne):
     NOTE: the scaling is currently hardcoded to occur between 500ms and 1500ms. This may need to be changed for shots of different lengths.
     TODO: Adjust the scaling to be based on a more flexible metric.
     '''
+
+    ip_node = MDSplus.Tree('cmod', shot).getNode('\ip')
+
+    ip_data = ip_node.data()
+    ip_times = ip_node.dim_of().data()
+
+    indices = np.where((ip_times > 0.5) & (ip_times < 1.5))[0]
+    idx_start, idx_end = indices[0], indices[-1]
+
+    if np.abs(ip_data[idx_start]) < 0.4e6 or np.abs(ip_data[idx_end]) < 0.4e6:
+        print('The plasma current is not higher than 0.4MA for the full range 0.5s-1.5s.\
+              Therefore, a Thomson scaling to the TCI data may not be reliable for this shot \
+              and has not beed performed.')
+        return core_ne
     
     # get the scaling factor for the two lasers based on TCI measurements
     mult_factor1, mult_factor2, mult_factor = get_ts_tci_ratio(shot, 0.5, 1.5) # may want to change this. TODO: be able to vary the time window
