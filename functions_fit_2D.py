@@ -1591,7 +1591,7 @@ def master_fit_ne_Te_1D(shot, t_min=0, t_max=5000, scale_core_TS_to_TCI = False,
             # This flag artificially places a minimum reasonable error bar on all points to avoid problems like this.
             if set_minimum_errorbar == True:
                 total_ne_err[total_ne_err < 2e19] = np.maximum(2e19, total_ne_err[total_ne_err < 2e19] * 0.1)
-                total_te_err[total_te_err < 20] = np.maximum(20, total_te_err[total_te_err < 100] * 0.1)
+                total_te_err[total_te_err < 20] = np.maximum(20, total_te_err[total_te_err < 20] * 0.1)
 
 
 
