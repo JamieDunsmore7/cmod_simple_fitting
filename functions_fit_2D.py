@@ -2372,13 +2372,13 @@ def master_fit_ne_Te_2D_window_smoothing(shot, t_min, t_max, smoothing_window = 
             
 
             # Te outlier rejection
-            te_fitted = Osborne_Tanh_cubic(total_psi_te, te_params[0], te_params[1], te_params[2], te_params[3], te_params[4], te_params[5], te_params[6])
-            total_te_residuals = np.abs(total_te - te_fitted)
+            te_fitted_for_outlier_rejection = Osborne_Tanh_cubic(total_psi_te, te_params[0], te_params[1], te_params[2], te_params[3], te_params[4], te_params[5], te_params[6])
+            total_te_residuals = np.abs(total_te - te_fitted_for_outlier_rejection)
             te_outliers_mask = total_te_residuals < 3*total_te_err #reject any points that are more than 3 sigma away from the fit
 
             # ne outlier rejection
-            ne_fitted = 1e20*Osborne_Tanh_cubic(total_psi_ne, ne_params[0], ne_params[1], ne_params[2], ne_params[3], ne_params[4], ne_params[5], ne_params[6])
-            total_ne_residuals = np.abs(total_ne - ne_fitted)
+            ne_fitted_for_outlier_rejection = 1e20*Osborne_Tanh_cubic(total_psi_ne, ne_params[0], ne_params[1], ne_params[2], ne_params[3], ne_params[4], ne_params[5], ne_params[6])
+            total_ne_residuals = np.abs(total_ne - ne_fitted_for_outlier_rejection)
             ne_outliers_mask = total_ne_residuals < 3*total_ne_err #reject any points that are more than 3 sigma away from the fit
 
             # this just makes sure that the ne and Te arrays are the same length, which is easier for data processing
