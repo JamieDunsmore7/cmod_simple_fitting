@@ -117,14 +117,6 @@ def compare_ts_tci(shot, tmin, tmax, nl_num=4):
             if not np.all(np.isfinite(tci_t)) or not np.all(np.isfinite(tci)):
                 print("Non-finite values found in tci_t or tci")
 
-
-            print(ts_time1[ind])
-            print(len(ts_time1[ind]))
-
-            plt.plot(tci_t, tci)
-            plt.show()
-
-
             nl_tci1 = interp1d(tci_t, tci)(ts_time1[ind])
             nl_ts1 = interp1d(nl_ts_t, nl_ts)(ts_time1[ind])
             time1 = ts_time1[ind]
