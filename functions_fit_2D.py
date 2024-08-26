@@ -2596,7 +2596,7 @@ def master_fit_ne_Te_2D_window_smoothing(shot, t_min, t_max, smoothing_window = 
                     te_covariance = None
                     te_fitted = None
                     successful_te_fit_mask.append(False)
-                    print('TE FIT FAILED')
+                    print('TE FIT FAILED at time: ', time)
                 else:
                     # move onto the next guess
                     continue
@@ -2615,8 +2615,6 @@ def master_fit_ne_Te_2D_window_smoothing(shot, t_min, t_max, smoothing_window = 
         for ne_guess_idx in range(len(list_of_ne_guesses)):
             ne_guess = list_of_ne_guesses[ne_guess_idx]
             try:
-                print('ne guess')
-                print(ne_guess)
                 ne_params, ne_covariance = curve_fit(Osborne_Tanh_cubic, list_of_raw_ne_xvalues_shifted, list_of_raw_ne/1e20, p0=ne_guess, sigma=list_of_raw_ne_err_weights_applied/1e20, absolute_sigma=False, maxfev=2000, bounds=([0.85, 0.001, 0, -0.001, -np.inf, -np.inf, -np.inf], [1.05, np.inf, np.inf, np.inf, np.inf, np.inf, np.inf])) #should now be in psi
                 ne_fitted = 1e20*Osborne_Tanh_cubic(generated_psi_grid, ne_params[0], ne_params[1], ne_params[2], ne_params[3], ne_params[4], ne_params[5], ne_params[6])
                 #plt.plot(generated_psi_grid, ne_fitted)
@@ -2641,7 +2639,7 @@ def master_fit_ne_Te_2D_window_smoothing(shot, t_min, t_max, smoothing_window = 
                     ne_covariance = None
                     ne_fitted = None
                     successful_ne_fit_mask.append(False)
-                    print('NE FIT FAILED')
+                    print('NE FIT FAILED at time: ', time)
 
                     '''
 
@@ -2782,10 +2780,10 @@ def master_fit_2D_alt(shot, t_min, t_max, smoothing_window=15):
     '''
 
     # get the ne and Te fits at each time point from the 1D fitting function
-    generated_psi_grid, list_of_Thomson_times_te_ms, list_of_te_fitted_at_Thomson_times, list_of_te_reduced_chi_squared, \
-    list_of_te_fit_type, list_of_Thomson_times_ne_ms, list_of_ne_fitted_at_Thomson_times, list_of_ne_reduced_chi_squared, \
+    generated_psi_grid, list_of_Thomson_times_te_ms, list_of_te_fitted_at_Thomson_times, list_of_te_fitted_std_at_Thomson_times, list_of_te_reduced_chi_squared, \
+    list_of_te_fit_type, list_of_Thomson_times_ne_ms, list_of_ne_fitted_at_Thomson_times, list_of_ne_fitted_std_at_Thomson_times, list_of_ne_reduced_chi_squared, \
     list_of_ne_fit_type, list_of_total_psi_te, list_of_total_te, list_of_total_te_err, \
-    list_of_total_psi_ne, list_of_total_ne, list_of_total_ne_err = master_fit_ne_Te_1D(shot, t_min, t_max, plot_the_fits=False, remove_zeros_before_fitting=True, shift_to_2pt_model=True, return_processed_raw_data=True)
+    list_of_total_psi_ne, list_of_total_ne, list_of_total_ne_err = master_fit_ne_Te_1D(shot, t_min, t_max, plot_the_fits=False, remove_zeros_before_fitting=True, shift_to_2pt_model=True, return_processed_raw_data=True, return_error_bars_on_fits=True, use_edge_chi_squared=True)
 
 
 
@@ -2829,15 +2827,11 @@ def master_fit_2D_alt(shot, t_min, t_max, smoothing_window=15):
     list_of_raw_Te = np.array(list_of_total_te_flattened)
     list_of_raw_Te_err = np.array(list_of_total_te_err_flattened)
 
-    plt.scatter(list_of_raw_ne_xvalues_shifted, list_of_raw_ne, marker='x')
-    plt.errorbar(list_of_raw_ne_xvalues_shifted, list_of_raw_ne, yerr=list_of_raw_ne_err, fmt = 'o', color='green')
-    plt.show()
-
-    plt.scatter(list_of_raw_Te_xvalues_shifted, list_of_raw_Te, marker='x')
-    plt.errorbar(list_of_raw_Te_xvalues_shifted, list_of_raw_Te, yerr=list_of_raw_Te_err, fmt = 'o', color='red')
-    plt.show()
 
 
+    # get an average errorbar
+    average_te_error_band = np.mean(list_of_te_fitted_std_at_Thomson_times, axis=0) #just take an average for the standard deviation
+    average_ne_error_band = np.mean(list_of_ne_fitted_std_at_Thomson_times, axis=0) #just take an average for the standard deviation
 
 
     new_times_for_results = np.arange(0, t_max-t_min, 1) # return fits on 1ms timebase
@@ -2846,9 +2840,6 @@ def master_fit_2D_alt(shot, t_min, t_max, smoothing_window=15):
     te_params_from_last_successful_fit = None
     ne_params_from_last_successful_fit = None
 
-    # TODO: implement a proper error function for the 1D fits
-    average_te_error_band = 0
-    average_ne_error_band = 0
 
     # Lists to store the smoothed fits
     list_of_ne_fitted = []
@@ -3130,9 +3121,9 @@ def master_fit_ne_Te_2D_quadratic(shot, t_min, t_max, time_window_for_evolution 
     '''
 
     # get the ne and Te fits at each time point from the 1D fitting function
-    generated_psi_grid, list_of_Thomson_times_te_ms, list_of_te_fitted_at_Thomson_times, list_of_te_reduced_chi_squared, \
-    list_of_te_fit_type, list_of_Thomson_times_ne_ms, list_of_ne_fitted_at_Thomson_times, list_of_ne_reduced_chi_squared, \
-    list_of_ne_fit_type = master_fit_ne_Te_1D(shot, t_min, t_max, plot_the_fits=False, remove_zeros_before_fitting=True, shift_to_2pt_model=True, return_processed_raw_data=False)
+    generated_psi_grid, list_of_Thomson_times_te_ms, list_of_te_fitted_at_Thomson_times, list_of_te_fitted_err_at_Thomson_times, list_of_te_reduced_chi_squared, \
+    list_of_te_fit_type, list_of_Thomson_times_ne_ms, list_of_ne_fitted_at_Thomson_times, list_of_ne_fitted_err_at_Thomson_times, list_of_ne_reduced_chi_squared, \
+    list_of_ne_fit_type = master_fit_ne_Te_1D(shot, t_min, t_max, plot_the_fits=False, remove_zeros_before_fitting=True, shift_to_2pt_model=True, return_processed_raw_data=False, return_error_bars_on_fits=True)
 
 
     list_of_Thomson_times_te_ms_norm = np.array(list_of_Thomson_times_te_ms) - t_min
@@ -3141,19 +3132,16 @@ def master_fit_ne_Te_2D_quadratic(shot, t_min, t_max, time_window_for_evolution 
     list_of_te_fitted_at_Thomson_times = np.array(list_of_te_fitted_at_Thomson_times)
     list_of_ne_fitted_at_Thomson_times = np.array(list_of_ne_fitted_at_Thomson_times)
 
-    # PLACEHOLDER WITH 10pc error for the moment. TODO: proper errors
-    list_of_te_fitted_err_at_Thomson_times = 0.1*list_of_te_fitted_at_Thomson_times
-    list_of_ne_fitted_err_at_Thomson_times = 0.1*list_of_ne_fitted_at_Thomson_times
-
-    
+    list_of_te_fitted_err_at_Thomson_times = np.array(list_of_te_fitted_err_at_Thomson_times)
+    list_of_ne_fitted_err_at_Thomson_times = np.array(list_of_ne_fitted_err_at_Thomson_times)
 
     # Time window for evolution
     if time_window_for_evolution is not None:
 
-        ne_times_mask = (list_of_Thomson_times_te_ms_norm > time_window_for_evolution[0]) & (list_of_Thomson_times_te_ms_norm < time_window_for_evolution[1])
-        list_of_Thomson_times_te_ms_norm = list_of_Thomson_times_ne_ms_norm[ne_times_mask]
-        list_of_te_fitted_at_Thomson_times = list_of_te_fitted_at_Thomson_times[ne_times_mask]
-        list_of_te_fitted_err_at_Thomson_times = list_of_te_fitted_err_at_Thomson_times[ne_times_mask]
+        ne_times_mask = (list_of_Thomson_times_ne_ms_norm > time_window_for_evolution[0]) & (list_of_Thomson_times_ne_ms_norm < time_window_for_evolution[1])
+        list_of_Thomson_times_ne_ms_norm = list_of_Thomson_times_ne_ms_norm[ne_times_mask]
+        list_of_ne_fitted_at_Thomson_times = list_of_ne_fitted_at_Thomson_times[ne_times_mask]
+        list_of_ne_fitted_err_at_Thomson_times = list_of_ne_fitted_err_at_Thomson_times[ne_times_mask]
 
         te_times_mask = (list_of_Thomson_times_te_ms_norm > time_window_for_evolution[0]) & (list_of_Thomson_times_te_ms_norm < time_window_for_evolution[1])
         list_of_Thomson_times_te_ms_norm = list_of_Thomson_times_te_ms_norm[te_times_mask]
@@ -3166,8 +3154,8 @@ def master_fit_ne_Te_2D_quadratic(shot, t_min, t_max, time_window_for_evolution 
 
     if plot == True:
         # Plot to show how the quadratic fit actually looks
-        evolve_fits_by_radius_example_for_panel_plots(list_of_Thomson_times_ne_ms_norm, generated_psi_grid, list_of_ne_fitted_at_Thomson_times)
-        evolve_fits_by_radius_example_for_panel_plots(list_of_Thomson_times_te_ms_norm, generated_psi_grid, list_of_te_fitted_at_Thomson_times)
+        evolve_fits_by_radius_example_for_panel_plots(list_of_Thomson_times_ne_ms_norm, generated_psi_grid, list_of_ne_fitted_at_Thomson_times, output_time_grid=output_time_grid)
+        evolve_fits_by_radius_example_for_panel_plots(list_of_Thomson_times_te_ms_norm, generated_psi_grid, list_of_te_fitted_at_Thomson_times, output_time_grid=output_time_grid)
     
 
     # Evolve the fits in time with a qaudatic
@@ -3195,11 +3183,60 @@ def master_fit_ne_Te_2D_quadratic(shot, t_min, t_max, time_window_for_evolution 
 ###############################################################
 ###############################################################
 
+'''
+output_time_grid, generated_psi_grid, Rmid_grid, new_ne_values, new_ne_err, new_Te_values, new_Te_err = master_fit_ne_Te_2D_window_smoothing(1091210027, 650, 700)
+
+plt.plot(generated_psi_grid, new_ne_values[10])
+plt.fill_between(generated_psi_grid, new_ne_values[10] - new_ne_err[10], new_ne_values[10] + new_ne_err[10], alpha=0.5)
+plt.show()
+
+print(stop)
+'''
 
 
 
-master_fit_ne_Te_1D(1030523030, 587, 700, plot_the_fits=True, remove_zeros_before_fitting=True, shift_to_2pt_model=False, scale_core_TS_to_TCI=True)
+output_time_grid, generated_psi_grid, Rmid_grid, new_ne_values, new_ne_err, new_Te_values, new_Te_err = master_fit_2D_alt(1091210027, 587, 700)
+
+plt.plot(generated_psi_grid, new_ne_values[10])
+plt.fill_between(generated_psi_grid, new_ne_values[10] - new_ne_err[10], new_ne_values[10] + new_ne_err[10], alpha=0.5)
+plt.show()
+
+print(stop)
+ 
+
+#master_fit_ne_Te_1D(1030523030, 587, 700, plot_the_fits=False, remove_zeros_before_fitting=True, shift_to_2pt_model=False, scale_core_TS_to_TCI=True, return_error_bars_on_fits=True, return_processed_raw_data=True)
 
 #master_fit_ne_Te_2D_window_smoothing(1091210027, 587, 700, smoothing_window=15)
 
 #master_fit_2D_alt(1091210027, 587, 700, smoothing_window=15)
+
+
+
+
+generated_psi_grid,\
+list_of_successful_te_fit_times_ms,\
+list_fitted_te_profiles,\
+list_of_te_fit_errors,\
+list_of_te_reduced_chi_squared,\
+list_of_te_fit_type,\
+list_of_successful_ne_fit_times_ms,\
+list_fitted_ne_profiles,\
+list_of_ne_fit_errors,\
+list_of_ne_reduced_chi_squared,\
+list_of_ne_fit_type,\
+list_of_total_psi_te,\
+list_of_total_te,\
+list_of_total_te_err,\
+list_of_total_psi_ne,\
+list_of_total_ne,\
+list_of_total_ne_err = master_fit_ne_Te_1D(1030523030, 587, 700, plot_the_fits=False, remove_zeros_before_fitting=True, shift_to_2pt_model=False, scale_core_TS_to_TCI=True, return_error_bars_on_fits=True, return_processed_raw_data=True)
+
+plt.errorbar(list_of_total_psi_te[0], list_of_total_te[0], yerr=list_of_total_te_err[0], fmt = 'o')
+plt.plot(generated_psi_grid, list_fitted_te_profiles[0])
+plt.fill_between(generated_psi_grid, list_fitted_te_profiles[0] - list_of_te_fit_errors[0], list_fitted_te_profiles[0] + list_of_te_fit_errors[0], alpha=0.5)
+plt.show()
+
+plt.errorbar(list_of_total_psi_ne[0], list_of_total_ne[0], yerr=list_of_total_ne_err[0], fmt = 'o')
+plt.plot(generated_psi_grid, list_fitted_ne_profiles[0])
+plt.fill_between(generated_psi_grid, list_fitted_ne_profiles[0] - list_of_ne_fit_errors[0], list_fitted_ne_profiles[0] + list_of_ne_fit_errors[0], alpha=0.5)
+plt.show()
