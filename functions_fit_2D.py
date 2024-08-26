@@ -1414,7 +1414,7 @@ def evolve_fits_by_radius_example_for_panel_plots(times, psi_grid, yvalues, outp
 
 def master_fit_ne_Te_1D(shot, t_min=0, t_max=5000, scale_core_TS_to_TCI = False, set_Te_floor_to_20eV = True, set_minimum_errorbar = True, 
                         remove_zeros_before_fitting = True, add_zero_in_SOL = True, shift_to_2pt_model=False, plot_the_fits = False,
-                        return_processed_raw_data = False):
+                        return_processed_raw_data = False, return_error_bars_on_fits = False, use_edge_chi_squared = False):
     '''
     INPUTS
     --------
@@ -1430,6 +1430,8 @@ def master_fit_ne_Te_1D(shot, t_min=0, t_max=5000, scale_core_TS_to_TCI = False,
     shift_to_2pt_model: boolean, if True, the Thomson data and fits are shifted post-fit to align the separatrix Te with the 2-point model prediction.
     plot_the_fits: boolean, option to plot the fits at each Thomson time point.
     return_processed_raw_data: boolean, if True, the processed raw data is returned as well as the fits. Processing involves adding/removing zeros, as well as shifting according to 2-pt model.
+    return_error_bars_on_fits: boolean, if True, a Monte-Carlo approach to errorbar calculation is performed and the errorbars on the fits are returned. This makes the routine much slower.
+    use_edge_chi_squared: boolean, if True, the reduced chi squared is calculated between 0.6 < psi < 1.0 only. This is useful if good edge data exists and if a good edge fit is the priority.
 
     
     RETURNS
@@ -1495,6 +1497,10 @@ def master_fit_ne_Te_1D(shot, t_min=0, t_max=5000, scale_core_TS_to_TCI = False,
     list_of_total_psi_ne = []
     list_of_total_ne = []
     list_of_total_ne_err = []
+
+    # errors on the fits, which take some time to run but can be calculated if requested
+    list_of_te_fit_errors = []
+    list_of_ne_fit_errors = []
 
 
     generated_psi_grid_core = np.arange(0, 0.8, 0.01)
@@ -1673,7 +1679,7 @@ def master_fit_ne_Te_1D(shot, t_min=0, t_max=5000, scale_core_TS_to_TCI = False,
                     #print('cubic', te_params[6])
 
                     te_fitted_for_chi_squared = Osborne_Tanh_cubic(total_psi_te, te_params[0], te_params[1], te_params[2], te_params[3], te_params[4], te_params[5], te_params[6])
-                    te_chi_squared = reduced_chi_squared_inside_separatrix(total_psi_te, total_te, te_fitted_for_chi_squared, total_te_err, len(te_params))
+                    te_chi_squared = reduced_chi_squared_inside_separatrix(total_psi_te, total_te, te_fitted_for_chi_squared, total_te_err, len(te_params), only_edge = use_edge_chi_squared)
                     te_params_from_last_successful_fit = te_params
                     break #guess worked so exit the for loop
 
@@ -1696,7 +1702,7 @@ def master_fit_ne_Te_1D(shot, t_min=0, t_max=5000, scale_core_TS_to_TCI = False,
             te_fitted_cubic = Cubic(generated_psi_grid, te_params_cubic[0], te_params_cubic[1], te_params_cubic[2], te_params_cubic[3])
 
             te_fitted_cubic_for_chi_squared = Cubic(total_psi_te, te_params_cubic[0], te_params_cubic[1], te_params_cubic[2], te_params_cubic[3])
-            te_chi_squared_cubic = reduced_chi_squared_inside_separatrix(total_psi_te, total_te, te_fitted_cubic_for_chi_squared, total_te_err, len(te_params_cubic))
+            te_chi_squared_cubic = reduced_chi_squared_inside_separatrix(total_psi_te, total_te, te_fitted_cubic_for_chi_squared, total_te_err, len(te_params_cubic), only_edge = use_edge_chi_squared)
 
             # print the reduced chi-squared values of the respective fits
             print(f'te reduced chi squared cubic: {te_chi_squared_cubic:.2f}')
@@ -1812,7 +1818,7 @@ def master_fit_ne_Te_1D(shot, t_min=0, t_max=5000, scale_core_TS_to_TCI = False,
                     #print('cubic', ne_params[6])
 
                     ne_fitted_for_chi_squared = 1e20*Osborne_Tanh_cubic(total_psi_ne, ne_params[0], ne_params[1], ne_params[2], ne_params[3], ne_params[4], ne_params[5], ne_params[6])
-                    ne_chi_squared = reduced_chi_squared_inside_separatrix(total_psi_ne, total_ne, ne_fitted_for_chi_squared, total_ne_err, len(ne_params))
+                    ne_chi_squared = reduced_chi_squared_inside_separatrix(total_psi_ne, total_ne, ne_fitted_for_chi_squared, total_ne_err, len(ne_params), only_edge = use_edge_chi_squared)
                     ne_params_from_last_successful_fit = ne_params
                     break #guess worked so exit the for loop
                 except:
@@ -1835,7 +1841,7 @@ def master_fit_ne_Te_1D(shot, t_min=0, t_max=5000, scale_core_TS_to_TCI = False,
             ne_fitted_cubic = 1e20*Cubic(generated_psi_grid, ne_params_cubic[0], ne_params_cubic[1], ne_params_cubic[2], ne_params_cubic[3])
             
             ne_fitted_cubic_for_chi_squared = 1e20*Cubic(total_psi_ne, ne_params_cubic[0], ne_params_cubic[1], ne_params_cubic[2], ne_params_cubic[3])
-            ne_chi_squared_cubic = reduced_chi_squared_inside_separatrix(total_psi_ne, total_ne, ne_fitted_cubic_for_chi_squared, total_ne_err, len(ne_params_cubic))
+            ne_chi_squared_cubic = reduced_chi_squared_inside_separatrix(total_psi_ne, total_ne, ne_fitted_cubic_for_chi_squared, total_ne_err, len(ne_params_cubic), only_edge = use_edge_chi_squared)
 
             # print the reduced chi-squared values of the respective fits
             print(f'ne reduced chi squared cubic: {ne_chi_squared_cubic:.2f}')
@@ -1908,6 +1914,59 @@ def master_fit_ne_Te_1D(shot, t_min=0, t_max=5000, scale_core_TS_to_TCI = False,
                 ne_best_fit_type = None
                 number_of_ne_failed_fits += 1
 
+            # Option to estimate errors on the fits using a Monte-Carlo approach.
+            if return_error_bars_on_fits == True:
+                print('STARTING MONTE CARLO METHOD FOR TE...')
+                list_of_perturbed_te_fits = []
+                for idx in range(100):
+                    perturbed_te_values = np.random.normal(loc = total_te, scale = total_te_err) #perturb the data to see how the fit changes
+                    if te_best_fit_type == 'cubic':
+                        perturbed_te_params, te_covariance = curve_fit(Cubic, total_psi_te, perturbed_te_values, sigma=total_te_err, absolute_sigma=True, maxfev=2000)
+                        perturbed_te_fitted = Cubic(generated_psi_grid, perturbed_te_params[0], perturbed_te_params[1], perturbed_te_params[2], perturbed_te_params[3])
+                        list_of_perturbed_te_fits.append(perturbed_te_fitted)
+
+                    else:
+                        try:
+                            perturbed_te_params, te_covariance = curve_fit(Osborne_Tanh_cubic, total_psi_te, perturbed_te_values, p0=te_params, sigma=total_te_err, absolute_sigma=True, maxfev=2000, bounds=([0.85, 0.01, 50, -0.001, -np.inf, -np.inf, -np.inf], [1.1, 0.2, 500, np.inf, np.inf, np.inf, np.inf]))
+                            perturbed_te_fitted = Osborne_Tanh_cubic(generated_psi_grid, perturbed_te_params[0], perturbed_te_params[1], perturbed_te_params[2], perturbed_te_params[3], perturbed_te_params[4], perturbed_te_params[5], perturbed_te_params[6])
+                            
+                            # Sometimes the perturbed fits can converge but give a value of infinity at psi = 0 when the pedestal width is very small. 
+                            # The tiny width causes z to blow up in Osborne Tanh Cubic on the line above, giving the infinities.
+                            # Since these are only needed as averages for the error bars, I can safely ignore the infinities by setting them to nan.
+                            perturbed_te_fitted[np.isinf(perturbed_te_fitted)] = np.nan
+                            list_of_perturbed_te_fits.append(perturbed_te_fitted)
+
+                        except:
+                            print('TE IDX: ', idx, ' could not fit')
+                            pass
+
+
+                list_of_perturbed_te_fits = np.array(list_of_perturbed_te_fits)
+                list_of_te_fitted_std = np.nanstd(list_of_perturbed_te_fits, axis=0) #np.nanstd is just like np.std but ignores nans
+
+
+                print('STARTING MONTE CARLO METHOD FOR NE...')
+                list_of_perturbed_ne_fits = []
+                for idx in range(100):
+                    perturbed_ne_values = np.random.normal(loc = total_ne, scale = total_ne_err)
+                    if ne_best_fit_type == 'cubic':
+                        perturbed_ne_params, ne_covariance = curve_fit(Cubic, total_psi_ne, perturbed_ne_values/1e20, sigma=total_ne_err/1e20, absolute_sigma=True, maxfev=2000)
+                        perturbed_ne_fitted = 1e20*Cubic(generated_psi_grid, perturbed_ne_params[0], perturbed_ne_params[1], perturbed_ne_params[2], perturbed_ne_params[3])
+                        list_of_perturbed_ne_fits.append(perturbed_ne_fitted)
+
+                    else:
+                        try:
+                            perturbed_ne_params, ne_covariance = curve_fit(Osborne_Tanh_cubic, total_psi_ne, perturbed_ne_values/1e20, p0=ne_params, sigma=total_ne_err/1e20, absolute_sigma=True, maxfev=2000, bounds=([0.85, 0.001, 0, -0.001, -np.inf, -np.inf, -np.inf], [np.inf, np.inf, np.inf, np.inf, np.inf, np.inf, np.inf])) #should now be in psi
+                            perturbed_ne_fitted = 1e20*Osborne_Tanh_cubic(generated_psi_grid, perturbed_ne_params[0], perturbed_ne_params[1], perturbed_ne_params[2], perturbed_ne_params[3], perturbed_ne_params[4], perturbed_ne_params[5], perturbed_ne_params[6])
+                            perturbed_ne_fitted[np.isinf(perturbed_ne_fitted)] = np.nan
+                            list_of_perturbed_ne_fits.append(perturbed_ne_fitted)
+                        except:
+                            print('NE IDX: ', idx, ' could not fit')
+                            pass
+  
+                list_of_perturbed_ne_fits = np.array(list_of_perturbed_ne_fits)
+                list_of_ne_fitted_std = np.nanstd(list_of_perturbed_ne_fits, axis=0) # np.nanstd is just like np.std but ignores nans
+
 
             # OPTION TO SHIFT THE DATA AND FIT ACCORDING TO THE 2-PT MODEL
             if shift_to_2pt_model == True:
@@ -1916,8 +1975,7 @@ def master_fit_ne_Te_1D(shot, t_min=0, t_max=5000, scale_core_TS_to_TCI = False,
                 print('T SEP: ', Te_sep_eV)
                 print('SHIFT: ', shift)
 
-                # now interpolate back onto the generated psi grid
-                te_interp_function = interp1d(new_x, te_fitted, fill_value='extrapolate')
+                te_interp_function = interp1d(new_x, te_fitted_best, fill_value='extrapolate')
                 te_fitted_best = te_interp_function(generated_psi_grid)
 
                 ne_interp_function = interp1d(new_x, ne_fitted_best, fill_value='extrapolate')
@@ -1930,7 +1988,7 @@ def master_fit_ne_Te_1D(shot, t_min=0, t_max=5000, scale_core_TS_to_TCI = False,
             # plotting option for debugging/checking fit quality
             if plot_the_fits == True:
 
-                plt.errorbar(total_psi_te, total_te, yerr=total_te_err, fmt = 'o',mfc='white', color='red', alpha=0.7) # raw data
+                plt.errorbar(total_psi_te+shift, total_te, yerr=total_te_err, fmt = 'o',mfc='white', color='red', alpha=0.7) # raw data
                 
                 # option to plot the mtanh and cubic fits separately here
                 #if te_fitted is not None:
@@ -1940,6 +1998,8 @@ def master_fit_ne_Te_1D(shot, t_min=0, t_max=5000, scale_core_TS_to_TCI = False,
                 # just plot the best fit
                 if te_fitted_best is not None:
                     plt.plot(generated_psi_grid, te_fitted_best, label = rf'best fit: $\chi^2$ = {te_chi_squared_best:.2f}')
+                if return_error_bars_on_fits == True:
+                    plt.fill_between(generated_psi_grid, te_fitted_best - list_of_te_fitted_std, te_fitted_best + list_of_te_fitted_std, color='red', alpha=0.3)
                 plt.grid(linestyle='--', alpha=0.3)
                 plt.xlabel(r'$\psi$')
                 plt.ylabel('Te (eV)')
@@ -1953,7 +2013,7 @@ def master_fit_ne_Te_1D(shot, t_min=0, t_max=5000, scale_core_TS_to_TCI = False,
             # plotting option for debugging/checking fit quality
             if plot_the_fits == True:
 
-                plt.errorbar(total_psi_ne, total_ne, yerr=total_ne_err, fmt = 'o',mfc='white', color='green', alpha=0.7) # raw data
+                plt.errorbar(total_psi_ne+shift, total_ne, yerr=total_ne_err, fmt = 'o',mfc='white', color='green', alpha=0.7) # raw data
                 
                 # can plot the mtanh and cubic fits separately here
                 #if ne_fitted is not None:
@@ -1963,6 +2023,8 @@ def master_fit_ne_Te_1D(shot, t_min=0, t_max=5000, scale_core_TS_to_TCI = False,
                 # or just plot the best fit
                 if ne_fitted_best is not None:
                     plt.plot(generated_psi_grid, ne_fitted_best, label = rf'best fit: $\chi^2$ = {ne_best_chi_squared:.2f}')
+                if return_error_bars_on_fits == True:
+                    plt.fill_between(generated_psi_grid, ne_fitted_best - list_of_ne_fitted_std, ne_fitted_best + list_of_ne_fitted_std, color='green', alpha=0.3)
                 plt.grid(linestyle='--', alpha=0.3)
                 plt.xlabel(r'$\psi$')
                 plt.ylabel(r'$n_e$ ($m^{-3}$)')
@@ -1994,6 +2056,10 @@ def master_fit_ne_Te_1D(shot, t_min=0, t_max=5000, scale_core_TS_to_TCI = False,
             list_of_total_psi_ne.append(total_psi_ne + shift)
             list_of_total_ne.append(total_ne)
             list_of_total_ne_err.append(total_ne_err)
+
+            if return_error_bars_on_fits == True:
+                list_of_te_fit_errors.append(list_of_te_fitted_std)
+                list_of_ne_fit_errors.append(list_of_ne_fitted_std)
     
 
 
@@ -2014,13 +2080,36 @@ def master_fit_ne_Te_1D(shot, t_min=0, t_max=5000, scale_core_TS_to_TCI = False,
     print('Number of Ne failed fits')
     print(number_of_ne_failed_fits)
 
-    # can choose to return the processed raw data used to create the fits if desired
-    if return_processed_raw_data == True:
-        return generated_psi_grid, list_of_successful_te_fit_times_ms, list_fitted_te_profiles, list_of_te_reduced_chi_squared, list_of_te_fit_type, list_of_successful_ne_fit_times_ms, list_fitted_ne_profiles, list_of_ne_reduced_chi_squared, list_of_ne_fit_type, \
-            list_of_total_psi_te, list_of_total_te, list_of_total_te_err, list_of_total_psi_ne, list_of_total_ne, list_of_total_ne_err
-    else:
-        return generated_psi_grid, list_of_successful_te_fit_times_ms, list_fitted_te_profiles, list_of_te_reduced_chi_squared, list_of_te_fit_type, list_of_successful_ne_fit_times_ms, list_fitted_ne_profiles, list_of_ne_reduced_chi_squared, list_of_ne_fit_type
+    quantities_to_return = [
+        generated_psi_grid,
+        list_of_successful_te_fit_times_ms,
+        list_fitted_te_profiles,
+        list_of_te_reduced_chi_squared,
+        list_of_te_fit_type,
+        list_of_successful_ne_fit_times_ms,
+        list_fitted_ne_profiles,
+        list_of_ne_reduced_chi_squared,
+        list_of_ne_fit_type
+    ]
 
+    if return_error_bars_on_fits == True:
+        quantities_to_return.insert(3, list_of_te_fit_errors)
+        quantities_to_return.insert(8, list_of_ne_fit_errors)
+
+    if return_processed_raw_data == True:
+        quantities_to_return.extend([
+            list_of_total_psi_te,
+            list_of_total_te,
+            list_of_total_te_err,
+            list_of_total_psi_ne,
+            list_of_total_ne,
+            list_of_total_ne_err
+        ])
+
+    
+
+
+    return quantities_to_return
 
 
 def master_fit_ne_Te_2D_window_smoothing(shot, t_min, t_max, smoothing_window = 15):
