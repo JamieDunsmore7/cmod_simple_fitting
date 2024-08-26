@@ -563,13 +563,6 @@ def scale_core_Thomson(shot, core_time_ms, core_ne):
 
     ts_time = tree.getNode('\\TOP.ELECTRONS.YAG_NEW.RESULTS.PROFILES:NE_RZ').dim_of().data()
 
-    print('ts time', ts_time)
-
-    print('indices1')
-    print(indices1)
-    print('indices2')
-    print(indices2)
-
     laser_1 = ts_time[indices1]
     print('laser 1', laser_1)
     laser_1 *= 1000 #conversion to ms
