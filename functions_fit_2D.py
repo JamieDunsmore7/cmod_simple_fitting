@@ -1353,7 +1353,7 @@ def reduced_chi_squared_inside_separatrix(psi_values, ydata, yfit, yerr, num_par
 ##################################
 
 
-def evolve_fits_by_radius_example_for_panel_plots(times, psi_grid, yvalues):
+def evolve_fits_by_radius_example_for_panel_plots(times, psi_grid, yvalues, output_time_grid = None):
     '''
     INPUTS
     --------
@@ -1372,6 +1372,11 @@ def evolve_fits_by_radius_example_for_panel_plots(times, psi_grid, yvalues):
     new_psi_grid_core = np.linspace(0.1, 0.9, 9)
     new_psi_grid_edge = np.linspace(0.95, 1.05, 11)
     new_psi_grid = np.append(new_psi_grid_core, new_psi_grid_edge)
+
+    if output_time_grid is not None:
+        high_res_time_grid = np.arange(output_time_grid[0], output_time_grid[-1], 1)
+    else:
+        high_res_time_grid = np.arange(times[0], times[-1], 1)
 
     interpolated_yvalues = []
 
@@ -1396,7 +1401,7 @@ def evolve_fits_by_radius_example_for_panel_plots(times, psi_grid, yvalues):
 
             #fit a quadratic to the data
             quadratic_fit = np.polyfit(times, interpolated_yvalues[:, idx], 2)
-            ax.plot(times, np.polyval(quadratic_fit, times), color='r')
+            ax.plot(high_res_time_grid, np.polyval(quadratic_fit, high_res_time_grid), color='r')
 
         else:
             ax.axis('off')  # Turn off axes if there are more subplots than new_psi_grid points
