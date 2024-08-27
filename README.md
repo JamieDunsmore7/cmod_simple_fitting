@@ -13,10 +13,11 @@ The fits are returned in a dictionary (saved as a .pickle file).
 # TODO:
 - [ ] Add in Ly-alpha analysis capabilities
 - [ ] Implement option for post-fit outlier rejection + refit in the 1D analysis
-- [ ] Fix the scaling to TCI data in the 1D fits
-- [ ] Implement a Monte-Carlo method for error bars in the 1D fitting routine
+- [x] Fix the scaling to TCI data in the 1D fits
+- [x] Implement a Monte-Carlo method for error bars in the 1D fitting routine
 - [ ] Let the 2D fit function also fit a cubic function if it wants
-- [ ] Split the functions into 4 or 5 separate files to make them more manageable
-- [ ] Add in the quadratic function option for smoothing
+- [x] Split the functions into 4 or 5 separate files to make them more manageable
+- [x] Add in the quadratic function option for smoothing
 - [ ] Clean up some of the long functions?
+- [ ] Add in options to do a combined fit for multiple different shots/times
 
