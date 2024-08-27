@@ -19,4 +19,5 @@ The fits are returned in a dictionary (saved as a .pickle file).
 - [x] Split the functions into 4 or 5 separate files to make them more manageable
 - [x] Add in the quadratic function option for smoothing
 - [ ] Clean up some of the long functions?
+- [ ] Add in options to do a combined fit for multiple different shots/times
 
