@@ -44,6 +44,48 @@ def remove_zeros(xdata, ydata, y_error, core_only = True):
     return new_x, new_y, new_yerr
 
 
+def remove_zeros_from_ne_and_Te_simultaneously(xdata, ne, Te, ne_err, Te_err, core_only = True):
+    '''
+    INPUTS
+    --------
+    xdata: 1D array of x values
+    ne: 1D array of ne values
+    Te: 1D array of Te values
+    ne_err: 1D array of ne errors
+    Te_err: 1D array of Te errors
+    core_only: boolean, if True, only remove zeros from data inside the LCFS. If False, remove zeros from the SOL data as well.
+    RETURNS
+    --------
+    new_x: 1D array of x values with zeros removed
+    new_ne: 1D array of ne with zeros removed
+    new_Te: 1D array of Te with zeros removed
+    new_ne_err: 1D array of ne errors with zeros removed
+    new_Te_err: 1D array of Te errors with zeros removed
+
+    DESCRIPTION
+    --------
+    NOTE: this function performs exactly the same task as remove_zeros, but it removes zeros from BOTH ne and Te if EITHER is zero.
+    This keeps the ne and Te arrays the same length, which is helpful later on.
+    '''
+
+    if core_only == True:
+        mask_ne  = (ne != 0) | (xdata > 1) #only remove zeros from inside the LCFS
+        mask_Te  = (Te != 0) | (xdata > 1) #only remove zeros from inside the LCFS
+    else: #let the last two values in the array be zero because these zeros may be physical
+        mask_ne = ne != 0
+        mask_Te = Te != 0
+
+    combined_mask = mask_ne & mask_Te
+
+    new_ne_xvalues = xdata[combined_mask]
+    new_Te_xvalues = xdata[combined_mask]
+    new_ne = ne[combined_mask]
+    new_Te = Te[combined_mask]
+    new_ne_err = ne_err[combined_mask]
+    new_Te_err = Te_err[combined_mask]
+    return new_ne_xvalues, new_ne_xvalues, new_ne, new_Te, new_ne_err, new_Te_err
+
+
 def add_SOL_zeros(xdata, ydata, y_error):
     '''
     INPUTS
