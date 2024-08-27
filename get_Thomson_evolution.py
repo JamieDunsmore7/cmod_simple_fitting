@@ -10,7 +10,7 @@ from scipy.interpolate import interp1d, interp2d
 
 sys.path.append('/home/jduns/Documents/phd_research/year_1/ly_alpha_workflow/')
 
-from functions_fit_2D import master_fit_ne_Te_2D_window_smoothing, master_fit_ne_Te_2D_quadratic
+from functions.functions_fit_2D import master_fit_ne_Te_2D_window_smoothing, master_fit_ne_Te_2D_quadratic
 import eqtools
 from eqtools import CModEFIT
 
