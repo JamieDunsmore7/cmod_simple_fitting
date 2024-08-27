@@ -12,7 +12,7 @@ from scipy.constants import Boltzmann as kB, e as q_electron, m_p
 import eqtools
 from eqtools import CModEFIT
 
-from functions_utility import *
+from functions.functions_utility import *
 
 
 def get_raw_edge_Thomson_data(shot, t_min = None, t_max = None):

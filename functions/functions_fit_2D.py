@@ -12,13 +12,13 @@ import eqtools
 from eqtools import CModEFIT
 
 
-from functions_fetching_raw_data import *
-from functions_coordinate_mapping import *
-from functions_profile_fitting import *
-from functions_utility import *
-from functions_TS_to_TCI_scaling import *
-from functions_two_point_model import *
-from functions_fit_1D import *
+from functions.functions_fetching_raw_data import *
+from functions.functions_coordinate_mapping import *
+from functions.functions_profile_fitting import *
+from functions.functions_utility import *
+from functions.functions_TS_to_TCI_scaling import *
+from functions.functions_two_point_model import *
+from functions.functions_fit_1D import *
 
 
 def evolve_fits_by_radius_example_for_panel_plots(times, psi_grid, yvalues, output_time_grid = None):
@@ -183,7 +183,7 @@ def master_fit_ne_Te_2D_window_smoothing(shot, t_min, t_max, smoothing_window = 
 
 
 
-
+            # NOTE: THIS CODE HERE MAY BE DEPRECATED COMPARED TO MY MORE RECENT PRE-PROCESSING IN THE MASTER 1D FITS.
             te_radii, te, te_err = remove_zeros(raw_rmid, raw_te, raw_te_err, core_only=True)
             ne_radii, ne, ne_err = remove_zeros(raw_rmid, raw_ne, raw_ne_err, core_only=True)
 
@@ -735,16 +735,13 @@ def master_fit_ne_Te_2D_window_smoothing(shot, t_min, t_max, smoothing_window = 
 
 def master_fit_2D_alt(shot, t_min, t_max, smoothing_window=15):
     '''
-    Exactly the same as the other 2D fitting function, except that the 1D fitting
+    Exactly the same as the window_smoothing 2D fitting function, except that the 1D fitting
     function (master_fit_ne_Te_1D) is used to do the fits at every time point.
     This gives a bit more flexibility (since it also tries a cubic fit), but currently
-    does not have a post-fitting outlier rejection method and also does not scale the
-    core Thomson data to the TCI data currently. The 1D method also doesn't do error bars yet
+    does not have a post-fitting outlier rejection method.
 
     TODO:
     Implement some option for post-fit outlier rejection
-    Implement some method for scaling of the core Thomson data in the 1D fit
-    Implement some method for getting error bars in the 1D fits.
     Let this function also use a cubic to fit if it wants.
     '''
 
@@ -755,8 +752,6 @@ def master_fit_2D_alt(shot, t_min, t_max, smoothing_window=15):
     list_of_total_psi_ne, list_of_total_ne, list_of_total_ne_err = master_fit_ne_Te_1D(shot, t_min, t_max, plot_the_fits=False, remove_zeros_before_fitting=True, shift_to_2pt_model=True, return_processed_raw_data=True, return_error_bars_on_fits=True, use_edge_chi_squared=True)
 
 
-
-    # CONVERT THE 2D ARRAYS INTO 1D ARRAYS SO THAT WEIGHTS CAN BE APPLIED AND THE SMOOTHED FITS CAN BE APPLIED
     list_of_te_successful_fit_times_flattened = []
     list_of_total_psi_te_flattened = []
     list_of_total_te_flattened = []
@@ -767,6 +762,9 @@ def master_fit_2D_alt(shot, t_min, t_max, smoothing_window=15):
     list_of_total_ne_flattened = []
     list_of_total_ne_err_flattened = []
 
+
+
+    # CONVERT THE 2D ARRAYS INTO 1D ARRAYS SO THAT WEIGHTS CAN BE APPLIED AND THE SMOOTHED FITS CAN BE APPLIED
     for idx in range(len(list_of_Thomson_times_te_ms)):
         no_of_points = len(list_of_total_psi_te[idx])
 

@@ -11,12 +11,12 @@ from scipy.constants import Boltzmann as kB, e as q_electron, m_p
 import eqtools
 from eqtools import CModEFIT
 
-from functions_fetching_raw_data import *
-from functions_coordinate_mapping import *
-from functions_profile_fitting import *
-from functions_utility import *
-from functions_TS_to_TCI_scaling import *
-from functions_two_point_model import *
+from functions.functions_fetching_raw_data import *
+from functions.functions_coordinate_mapping import *
+from functions.functions_profile_fitting import *
+from functions.functions_utility import *
+from functions.functions_TS_to_TCI_scaling import *
+from functions.functions_two_point_model import *
 
 
 
@@ -169,13 +169,23 @@ def master_fit_ne_Te_1D(shot, t_min=0, t_max=5000, scale_core_TS_to_TCI = False,
 
             # Option to remove zeros from the data for fitting.
             if remove_zeros_before_fitting == True:
-                # edge
-                raw_te_psi_edge, raw_te_edge, raw_te_err_edge = remove_zeros(raw_psi_edge, raw_te_edge, raw_te_err_edge, core_only=True)
-                raw_ne_psi_edge, raw_ne_edge, raw_ne_err_edge = remove_zeros(raw_psi_edge, raw_ne_edge, raw_ne_err_edge, core_only=True)
+
+                # NOTE: Remove the point from BOTH arrays if EITHER array has a zero to keep the arrays the same length.
+
+                raw_ne_psi_edge, raw_te_psi_edge, raw_ne_edge, raw_te_edge, raw_ne_err_edge, raw_te_err_edge = \
+                    remove_zeros_from_ne_and_Te_simultaneously(raw_psi_edge, raw_ne_edge, raw_te_edge, raw_ne_err_edge, raw_te_err_edge, core_only=True) #edge
+                
+
+                raw_ne_psi_core, raw_te_psi_core, raw_ne_core, raw_te_core, raw_ne_err_core, raw_te_err_core = \
+                    remove_zeros_from_ne_and_Te_simultaneously(raw_psi_core, raw_ne_core, raw_te_core, raw_ne_err_core, raw_te_err_core, core_only=True) #core
+                
+
+                #raw_te_psi_edge, raw_te_edge, raw_te_err_edge = remove_zeros(raw_psi_edge, raw_te_edge, raw_te_err_edge, core_only=True)
+                #raw_ne_psi_edge, raw_ne_edge, raw_ne_err_edge = remove_zeros(raw_psi_edge, raw_ne_edge, raw_ne_err_edge, core_only=True)
 
                 # core
-                raw_te_psi_core, raw_te_core, raw_te_err_core = remove_zeros(raw_psi_core, raw_te_core, raw_te_err_core, core_only=True)
-                raw_ne_psi_core, raw_ne_core, raw_ne_err_core = remove_zeros(raw_psi_core, raw_ne_core, raw_ne_err_core, core_only=True)
+                #raw_te_psi_core, raw_te_core, raw_te_err_core = remove_zeros(raw_psi_core, raw_te_core, raw_te_err_core, core_only=True)
+                #raw_ne_psi_core, raw_ne_core, raw_ne_err_core = remove_zeros(raw_psi_core, raw_ne_core, raw_ne_err_core, core_only=True)
 
             else:
                 raw_te_psi_edge = raw_psi_edge
@@ -207,7 +217,24 @@ def master_fit_ne_Te_1D(shot, t_min=0, t_max=5000, scale_core_TS_to_TCI = False,
                 total_ne_err[minimum_ne_mask] = np.maximum(2e19, total_ne[minimum_ne_mask] * 0.05)
                 total_te_err[minimum_te_mask] = np.maximum(20, total_te[minimum_te_mask] * 0.05)
 
+            
+            '''
+            if set_minimum_errorbar == True:
+                minimum_ne_mask = total_ne_err < 2e19
+                minimum_te_mask = total_te_err < 20
+                total_ne_err[minimum_ne_mask] = np.maximum(2e19, total_ne[minimum_ne_mask] * 0.1)
+                total_te_err[minimum_te_mask] = np.maximum(20, total_te[minimum_te_mask] * 0.1)
+            '''
 
+            print('Important ne')
+            print((total_ne_err / total_ne) * 100)
+            print('Important ne 2')
+            print(total_ne_err)
+
+            print('Important te')
+            print((total_te_err / total_te) * 100)
+            print('Important te 2')
+            print(total_te_err)
 
 
 
@@ -325,7 +352,7 @@ def master_fit_ne_Te_1D(shot, t_min=0, t_max=5000, scale_core_TS_to_TCI = False,
             if te_params is not None:
                 print(f'te reduced chi squared mtanh: {te_chi_squared:.2f}')
 
-            '''
+            
             # Do not use the mtanh fit if there are fewer than 3 points in the pedestal region.
             if te_params is not None:
                 pedestal_start = te_params[0] - te_params[1]
@@ -336,7 +363,7 @@ def master_fit_ne_Te_1D(shot, t_min=0, t_max=5000, scale_core_TS_to_TCI = False,
                     te_params = None
                     te_covariance = None
                     te_fitted = None
-            '''
+            
             
 
             # Do not use the mtanh fit if the reduced chi-squared is below 0 or above 20.
@@ -464,7 +491,7 @@ def master_fit_ne_Te_1D(shot, t_min=0, t_max=5000, scale_core_TS_to_TCI = False,
             if ne_params is not None:
                 print(f'ne reduced chi squared mtanh: {ne_chi_squared:.2f}')            
 
-            '''
+            
             # Do not use the mtanh fit if there are fewer than 3 points in the pedestal region.
             if ne_params is not None:
                 pedestal_start = ne_params[0] - ne_params[1]
@@ -475,7 +502,7 @@ def master_fit_ne_Te_1D(shot, t_min=0, t_max=5000, scale_core_TS_to_TCI = False,
                     ne_params = None
                     ne_covariance = None
                     ne_fitted = None
-            '''
+            
             
             # Do not use the mtanh fit if the reduced chi-squared is below 0 or above 20.
             if ne_params is not None:

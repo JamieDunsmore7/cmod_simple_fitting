@@ -12,8 +12,8 @@ from scipy.constants import Boltzmann as kB, e as q_electron, m_p
 import eqtools
 from eqtools import CModEFIT
 
-from functions_profile_fitting import *
-from functions_fetching_raw_data import *
+from functions.functions_profile_fitting import *
+from functions.functions_fetching_raw_data import *
 
 
 def apply_2pt_shift(xvalues, Te_values, sep_Te, old_sep, only_shift_edge = True):
