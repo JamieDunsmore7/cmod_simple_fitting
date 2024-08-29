@@ -667,20 +667,22 @@ def master_fit_ne_Te_1D(shot, t_min=0, t_max=5000, scale_core_TS_to_TCI = False,
                 list_of_te_reduced_chi_squared.append(te_chi_squared_best)
                 list_of_te_fit_type.append(te_best_fit_type)
 
+                # also save the raw data used to perform these fits
+                list_of_total_psi_te.append(total_psi_te + shift)
+                list_of_total_te.append(total_te)
+                list_of_total_te_err.append(total_te_err)
+
+
             if ne_fitted_best is not None:
                 list_of_successful_ne_fit_times_ms.append(time)
                 list_fitted_ne_profiles.append(ne_fitted_best)
-                list_of_ne_reduced_chi_squared.append(ne_best_chi_squared)
+                list_of_ne_reduced_chi_squared.append(ne_chi_squared_best)
                 list_of_ne_fit_type.append(ne_best_fit_type)
 
-            # also save the raw data points used to perform these fits
-            list_of_total_psi_te.append(total_psi_te + shift)
-            list_of_total_te.append(total_te)
-            list_of_total_te_err.append(total_te_err)
-
-            list_of_total_psi_ne.append(total_psi_ne + shift)
-            list_of_total_ne.append(total_ne)
-            list_of_total_ne_err.append(total_ne_err)
+                # also save the raw data used to perform these fits
+                list_of_total_psi_ne.append(total_psi_ne + shift)
+                list_of_total_ne.append(total_ne)
+                list_of_total_ne_err.append(total_ne_err)
 
             if return_error_bars_on_fits == True:
                 list_of_te_fit_errors.append(list_of_te_fitted_std)
