@@ -217,24 +217,6 @@ def master_fit_ne_Te_1D(shot, t_min=0, t_max=5000, scale_core_TS_to_TCI = False,
                 total_ne_err[minimum_ne_mask] = np.maximum(2e19, total_ne[minimum_ne_mask] * 0.05)
                 total_te_err[minimum_te_mask] = np.maximum(20, total_te[minimum_te_mask] * 0.05)
 
-            
-            '''
-            if set_minimum_errorbar == True:
-                minimum_ne_mask = total_ne_err < 2e19
-                minimum_te_mask = total_te_err < 20
-                total_ne_err[minimum_ne_mask] = np.maximum(2e19, total_ne[minimum_ne_mask] * 0.1)
-                total_te_err[minimum_te_mask] = np.maximum(20, total_te[minimum_te_mask] * 0.1)
-            '''
-
-            print('Important ne')
-            print((total_ne_err / total_ne) * 100)
-            print('Important ne 2')
-            print(total_ne_err)
-
-            print('Important te')
-            print((total_te_err / total_te) * 100)
-            print('Important te 2')
-            print(total_te_err)
 
 
 
