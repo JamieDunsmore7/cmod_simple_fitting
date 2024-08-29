@@ -39,8 +39,10 @@ def psi_to_Rmid_map(shot, t_min, t_max, psi_grid, output_time_grid):
     t_min_s = t_min/1000
     t_max_s = t_max/1000
 
-
-    e = eqtools.CModEFIT.CModEFITTree(shot, tree='EFIT20')
+    try:
+        e = eqtools.CModEFIT.CModEFITTree(shot, tree='EFIT20')
+    except:
+        e = eqtools.CModEFIT.CModEFITTree(shot, tree='ANALYSIS')
     eqtools_times = e.getTimeBase()
     eqtools_times_mask = (eqtools_times > t_min_s) & (eqtools_times < t_max_s)
     eqtools_times = eqtools_times[eqtools_times_mask] #just the times in the desired time window now
