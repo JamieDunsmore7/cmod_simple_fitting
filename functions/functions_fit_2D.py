@@ -1055,7 +1055,7 @@ def evolve_fits_by_radius(new_times, old_times, psi_grid, yvalues, y_error):
 
 
 
-def master_fit_ne_Te_2D_quadratic(shot, t_min, t_max, time_window_for_evolution = None, plot = True):
+def master_fit_ne_Te_2D_quadratic(list_of_shots, list_of_t_min, list_of_t_max, time_window_for_evolution = None, plot = True):
     '''
     INPUTS
     ------
@@ -1083,68 +1083,94 @@ def master_fit_ne_Te_2D_quadratic(shot, t_min, t_max, time_window_for_evolution 
     TODO: fix errors implementation once they've been added in the 1D fitting function.
     '''
 
-    # get the ne and Te fits at each time point from the 1D fitting function
-    generated_psi_grid, list_of_Thomson_times_te_ms, list_of_te_fitted_at_Thomson_times, list_of_te_fitted_err_at_Thomson_times, list_of_te_reduced_chi_squared, \
-    list_of_te_fit_type, list_of_Thomson_times_ne_ms, list_of_ne_fitted_at_Thomson_times, list_of_ne_fitted_err_at_Thomson_times, list_of_ne_reduced_chi_squared, \
-    list_of_ne_fit_type = master_fit_ne_Te_1D(shot, t_min, t_max, plot_the_fits=False, remove_zeros_before_fitting=True, shift_to_2pt_model=True, return_processed_raw_data=False, return_error_bars_on_fits=True)
+    # is a single shot is passed in, need to convert this to a 1 element list so I can cycle through it
+    if isinstance(list_of_shots, int):
+        list_of_shots = [list_of_shots]
+        list_of_t_min = [list_of_t_min]
+        list_of_t_max = [list_of_t_max]
 
 
-    list_of_Thomson_times_te_ms_norm = np.array(list_of_Thomson_times_te_ms) - t_min
-    list_of_Thomson_times_ne_ms_norm = np.array(list_of_Thomson_times_ne_ms) - t_min
 
-    list_of_te_fitted_at_Thomson_times = np.array(list_of_te_fitted_at_Thomson_times)
-    list_of_ne_fitted_at_Thomson_times = np.array(list_of_ne_fitted_at_Thomson_times)
+    # Now psi is just the generated psi grid. Te and Te_err are 2D arrays with each row being a fit at a different time.'times' just contains these fit times
+    fitted_Te_data_at_Thomson_times = {
+        'times': [],
+        'Te': [],
+        'Te_err': []
+    }
 
-    list_of_te_fitted_err_at_Thomson_times = np.array(list_of_te_fitted_err_at_Thomson_times)
-    list_of_ne_fitted_err_at_Thomson_times = np.array(list_of_ne_fitted_err_at_Thomson_times)
+    fitted_ne_data_at_Thomson_times = {
+        'times': [],
+        'ne': [],
+        'ne_err': []
+    }
+
+
+    for individual_shot, individual_t_min, individual_t_max in zip(list_of_shots, list_of_t_min, list_of_t_max):
+
+        # get the ne and Te fits at each time point from the 1D fitting function
+        generated_psi_grid, list_of_Thomson_times_te_ms, list_of_te_fitted_at_Thomson_times, list_of_te_fitted_err_at_Thomson_times, list_of_te_reduced_chi_squared, \
+        list_of_te_fit_type, list_of_Thomson_times_ne_ms, list_of_ne_fitted_at_Thomson_times, list_of_ne_fitted_err_at_Thomson_times, list_of_ne_reduced_chi_squared, \
+        list_of_ne_fit_type = master_fit_ne_Te_1D(individual_shot, individual_t_min, individual_t_max, plot_the_fits=False, remove_zeros_before_fitting=True, shift_to_2pt_model=True, return_processed_raw_data=False, return_error_bars_on_fits=True)
+
+        # CONVERT THE 2D ARRAYS OF RAW DATA INTO 1D ARRAYS SO THAT WEIGHTS CAN BE APPLIED AND THE SMOOTHED FITS CAN BE APPLIED
+        for idx in range(len(list_of_Thomson_times_te_ms)):
+
+            fitted_Te_data_at_Thomson_times['times'].append(list_of_Thomson_times_te_ms[idx] - individual_t_min)
+            fitted_Te_data_at_Thomson_times['Te'].append(list_of_te_fitted_at_Thomson_times[idx])
+            fitted_Te_data_at_Thomson_times['Te_err'].append(list_of_te_fitted_err_at_Thomson_times[idx])
+
+
+        for idx in range(len(list_of_Thomson_times_ne_ms)):
+            fitted_ne_data_at_Thomson_times['times'].append(list_of_Thomson_times_ne_ms[idx] - individual_t_min)
+            fitted_ne_data_at_Thomson_times['ne'].append(list_of_ne_fitted_at_Thomson_times[idx])
+            fitted_ne_data_at_Thomson_times['ne_err'].append(list_of_ne_fitted_err_at_Thomson_times[idx])
+    
+    for key in fitted_ne_data_at_Thomson_times.keys():
+        fitted_ne_data_at_Thomson_times[key] = np.array(fitted_ne_data_at_Thomson_times[key])
+    
+    for key in fitted_Te_data_at_Thomson_times.keys():
+        fitted_Te_data_at_Thomson_times[key] = np.array(fitted_Te_data_at_Thomson_times[key])
+
+
+    # Find the biggest time window and use this as the time grid
+    largest_t_delta = 0
+    for t_min, t_max in zip(list_of_t_min, list_of_t_max):
+        t_delta = t_max - t_min
+        if t_delta > largest_t_delta:
+            largest_t_delta = t_delta
 
     # Time window for evolution
     if time_window_for_evolution is not None:
 
-        ne_times_mask = (list_of_Thomson_times_ne_ms_norm > time_window_for_evolution[0]) & (list_of_Thomson_times_ne_ms_norm < time_window_for_evolution[1])
-        list_of_Thomson_times_ne_ms_norm = list_of_Thomson_times_ne_ms_norm[ne_times_mask]
-        list_of_ne_fitted_at_Thomson_times = list_of_ne_fitted_at_Thomson_times[ne_times_mask]
-        list_of_ne_fitted_err_at_Thomson_times = list_of_ne_fitted_err_at_Thomson_times[ne_times_mask]
+        ne_times_mask = (fitted_ne_data_at_Thomson_times['times'] > time_window_for_evolution[0]) & (fitted_ne_data_at_Thomson_times['times'] < time_window_for_evolution[1])
+        for key in fitted_ne_data_at_Thomson_times.keys():
+            fitted_ne_data_at_Thomson_times[key] = np.array(fitted_ne_data_at_Thomson_times[key])[ne_times_mask]
 
-        te_times_mask = (list_of_Thomson_times_te_ms_norm > time_window_for_evolution[0]) & (list_of_Thomson_times_te_ms_norm < time_window_for_evolution[1])
-        list_of_Thomson_times_te_ms_norm = list_of_Thomson_times_te_ms_norm[te_times_mask]
-        list_of_te_fitted_at_Thomson_times = list_of_te_fitted_at_Thomson_times[te_times_mask]
-        list_of_te_fitted_err_at_Thomson_times = list_of_te_fitted_err_at_Thomson_times[te_times_mask]
+        te_times_mask = (fitted_Te_data_at_Thomson_times['times'] > time_window_for_evolution[0]) & (fitted_Te_data_at_Thomson_times['times'] < time_window_for_evolution[1])
+        for key in fitted_Te_data_at_Thomson_times.keys():
+            fitted_Te_data_at_Thomson_times[key] = np.array(fitted_Te_data_at_Thomson_times[key])[te_times_mask]
 
         output_time_grid = np.arange(time_window_for_evolution[0], time_window_for_evolution[1], 1)
     else:
-        output_time_grid = np.arange(t_min, t_max, 1)
+        output_time_grid = np.arange(0, largest_t_delta, 1)
+
+
 
     if plot == True:
         # Plot to show how the quadratic fit actually looks
-        evolve_fits_by_radius_example_for_panel_plots(list_of_Thomson_times_ne_ms_norm, generated_psi_grid, list_of_ne_fitted_at_Thomson_times, output_time_grid=output_time_grid)
-        evolve_fits_by_radius_example_for_panel_plots(list_of_Thomson_times_te_ms_norm, generated_psi_grid, list_of_te_fitted_at_Thomson_times, output_time_grid=output_time_grid)
+        evolve_fits_by_radius_example_for_panel_plots(fitted_ne_data_at_Thomson_times['times'], generated_psi_grid, fitted_ne_data_at_Thomson_times['ne'], output_time_grid=output_time_grid)
+        evolve_fits_by_radius_example_for_panel_plots(fitted_Te_data_at_Thomson_times['times'], generated_psi_grid, fitted_Te_data_at_Thomson_times['Te'], output_time_grid=output_time_grid)
     
-
     # Evolve the fits in time with a qaudatic
-    new_ne_values, new_ne_err = evolve_fits_by_radius(output_time_grid, list_of_Thomson_times_ne_ms_norm, generated_psi_grid, list_of_ne_fitted_at_Thomson_times, list_of_ne_fitted_err_at_Thomson_times)
-    new_Te_values, new_Te_err = evolve_fits_by_radius(output_time_grid, list_of_Thomson_times_te_ms_norm, generated_psi_grid, list_of_te_fitted_at_Thomson_times, list_of_te_fitted_err_at_Thomson_times)
-
-    Rmid_grid = psi_to_Rmid_map(shot, t_min, t_max, generated_psi_grid, output_time_grid) #this is a 2D array of Rmid values at every psi value at every time point
+    new_ne_values, new_ne_err = evolve_fits_by_radius(output_time_grid, fitted_ne_data_at_Thomson_times['times'], generated_psi_grid, fitted_ne_data_at_Thomson_times['ne'], fitted_ne_data_at_Thomson_times['ne_err'])
+    new_Te_values, new_Te_err = evolve_fits_by_radius(output_time_grid, fitted_Te_data_at_Thomson_times['times'], generated_psi_grid, fitted_Te_data_at_Thomson_times['Te'], fitted_Te_data_at_Thomson_times['Te_err'])
+    
+    Rmid_grid = psi_to_Rmid_map_multiple_shots(list_of_shots, list_of_t_min, list_of_t_max, generated_psi_grid, output_time_grid)
 
     return output_time_grid, generated_psi_grid, Rmid_grid, new_ne_values, new_ne_err, new_Te_values, new_Te_err #returns ne and Te profiles at every ms.
 
 
 
-###############################################################
-###############################################################
-###############################################################
-###############################################################
-###############################################################
-###############################################################
-###############################################################
-###############################################################
-###############################################################
-###############################################################
-###############################################################
-###############################################################
-###############################################################
-###############################################################
 
 '''
 output_time_grid, generated_psi_grid, Rmid_grid, new_ne_values, new_ne_err, new_Te_values, new_Te_err = master_fit_ne_Te_2D_window_smoothing(1091210027, 650, 700)
