@@ -21,9 +21,9 @@ from functions.functions_two_point_model import *
 
 
 
-def master_fit_ne_Te_1D(shot, t_min=0, t_max=5000, scale_core_TS_to_TCI = False, set_Te_floor_to_20eV = True, set_minimum_errorbar = True, 
+def master_fit_ne_Te_1D(shot, t_min=0, t_max=5000, scale_core_TS_to_TCI = False, set_Te_floor = None, set_minimum_errorbar = True, 
                         remove_zeros_before_fitting = True, add_zero_in_SOL = True, shift_to_2pt_model=False, plot_the_fits = False,
-                        return_processed_raw_data = False, return_error_bars_on_fits = False, use_edge_chi_squared = False):
+                        return_processed_raw_data = False, return_error_bars_on_fits = False, use_edge_chi_squared = False, enforce_mtanh = True):
     '''
     INPUTS
     --------
@@ -32,15 +32,16 @@ def master_fit_ne_Te_1D(shot, t_min=0, t_max=5000, scale_core_TS_to_TCI = False,
     t_max: float, maximum time in ms
 
     scale_core_TS_to_TCI: boolean, if True, the core Thomson data is scaled to match the interferometry data over the course of the shot.
-    set_Te_floor_to_20eV: boolean, if True, the Te floor is set to 20eV if the fit goes below this value.
+    set_Te_floor: integer, if not None, this sets a minimum value for the Te profile at all time points. 
     set_minimum_errorbar: boolean, if True, a minimum errorbar is set for all points (this is because sometimes the error bars have been set to zero in the core, messing up the fits)
     remove_zeros_before_fitting: boolean, if True, zeros are removed from the data before fitting. Deafult is to only remove zeros < psi = 1, but this can be modified.
     add_zero_in_SOL: boolean, if True, a zero is added at the SOL edge to help the mtanh fit (hardcoded at psi=1.05).
-    shift_to_2pt_model: boolean, if True, the Thomson data and fits are shifted post-fit to align the separatrix Te with the 2-point model prediction.
+    shift_to_2pt_model: boolean, if True, the Thomson data and fits are shifted post-fit to align the separatrix Te with the 2-point model prediction. NOTE: cubic fits can give unreliable 2-pt model shifts.
     plot_the_fits: boolean, option to plot the fits at each Thomson time point.
     return_processed_raw_data: boolean, if True, the processed raw data is returned as well as the fits. Processing involves adding/removing zeros, as well as shifting according to 2-pt model.
     return_error_bars_on_fits: boolean, if True, a Monte-Carlo approach to errorbar calculation is performed and the errorbars on the fits are returned. This makes the routine much slower.
     use_edge_chi_squared: boolean, if True, the reduced chi squared is calculated between 0.6 < psi < 1.0 only. This is useful if good edge data exists and if a good edge fit is the priority.
+    enforce_mtanh: boolean, if True, only an mtanh fit will be used. If this fails then no fit will be returned.
 
     
     RETURNS
@@ -334,78 +335,87 @@ def master_fit_ne_Te_1D(shot, t_min=0, t_max=5000, scale_core_TS_to_TCI = False,
             if te_params is not None:
                 print(f'te reduced chi squared mtanh: {te_chi_squared:.2f}')
 
+            if enforce_mtanh == True:
+                if te_fitted is not None:
+                    te_fitted_best = te_fitted
+                    te_chi_squared_best = te_chi_squared
+                    te_best_fit_type = 'mtanh'
+                else:
+                    te_fitted_best = None
+                    te_chi_squared_best = None
+                    te_best_fit_type = None
             
-            # Do not use the mtanh fit if there are fewer than 3 points in the pedestal region.
-            if te_params is not None:
-                pedestal_start = te_params[0] - te_params[1]
-                pedestal_end = te_params[0] + te_params[1]
-                pedestal_mask = (total_psi_te > pedestal_start) & (total_psi_te < pedestal_end)
-                if len(total_psi_te[pedestal_mask]) < 3:
-                    print(f'Reject Te mtanh fit because there are only {len(total_psi_te[pedestal_mask])} points in the pedestal (require at least 3)')
-                    te_params = None
-                    te_covariance = None
-                    te_fitted = None
-            
-            
+            else:
+                # Do not use the mtanh fit if there are fewer than 3 points in the pedestal region.
+                if te_params is not None:
+                    pedestal_start = te_params[0] - te_params[1]
+                    pedestal_end = te_params[0] + te_params[1]
+                    pedestal_mask = (total_psi_te > pedestal_start) & (total_psi_te < pedestal_end)
+                    if len(total_psi_te[pedestal_mask]) < 3:
+                        print(f'Reject Te mtanh fit because there are only {len(total_psi_te[pedestal_mask])} points in the pedestal (require at least 3)')
+                        te_params = None
+                        te_covariance = None
+                        te_fitted = None
+                
+                
 
-            # Do not use the mtanh fit if the reduced chi-squared is below 0 or above 20.
-            if te_params is not None:
-                if te_chi_squared <= 0 or te_chi_squared > 20:
-                    print('Reject Te mtanh fit because the reduced chi squared is below 0 or greater than 20.')
-                    te_params = None
-                    te_covariance = None
-                    te_fitted = None
+                # Do not use the mtanh fit if the reduced chi-squared is below 0 or above 20.
+                if te_params is not None:
+                    if te_chi_squared <= 0 or te_chi_squared > 20:
+                        print('Reject Te mtanh fit because the reduced chi squared is below 0 or greater than 20.')
+                        te_params = None
+                        te_covariance = None
+                        te_fitted = None
 
-            # Do not use the cubic fit if the reduced chi-squared is below 0 or above 20.
-            if te_params_cubic is not None:
-                if te_chi_squared_cubic <= 0 or te_chi_squared_cubic > 20:
-                    print('Reject Te cubic fit because the reduced chi squared is below 0 or greater than 20.')
-                    te_params_cubic = None
-                    te_covariance_cubic = None
-                    te_fitted_cubic = None
+                # Do not use the cubic fit if the reduced chi-squared is below 0 or above 20.
+                if te_params_cubic is not None:
+                    if te_chi_squared_cubic <= 0 or te_chi_squared_cubic > 20:
+                        print('Reject Te cubic fit because the reduced chi squared is below 0 or greater than 20.')
+                        te_params_cubic = None
+                        te_covariance_cubic = None
+                        te_fitted_cubic = None
 
-            # Choose the best fit based on the reduced chi-squared values.
-            if te_params is not None and te_params_cubic is not None:
-                if te_chi_squared_cubic < te_chi_squared:
+                # Choose the best fit based on the reduced chi-squared values.
+                if te_params is not None and te_params_cubic is not None:
+                    if te_chi_squared_cubic < te_chi_squared:
+                        print('CUBIC IS BEST FIT')
+                        te_fitted_best = te_fitted_cubic
+                        te_chi_squared_best = te_chi_squared_cubic
+                        te_best_fit_type = 'cubic'
+                        number_of_te_cubic_fits += 1
+                    else:
+                        print('MTANH IS BEST FIT')
+                        te_fitted_best = te_fitted
+                        te_chi_squared_best = te_chi_squared
+                        te_best_fit_type = 'mtanh'
+                        number_of_te_mtanh_fits += 1
+                elif te_params is not None:
+                    print('MTANH IS BEST FIT')
+                    te_fitted_best = te_fitted
+                    te_chi_squared_best = te_chi_squared
+                    te_best_fit_type = 'mtanh'
+                    number_of_te_mtanh_fits += 1
+                elif te_params_cubic is not None:
                     print('CUBIC IS BEST FIT')
                     te_fitted_best = te_fitted_cubic
                     te_chi_squared_best = te_chi_squared_cubic
                     te_best_fit_type = 'cubic'
                     number_of_te_cubic_fits += 1
                 else:
-                    print('MTANH IS BEST FIT')
-                    te_fitted_best = te_fitted
-                    te_chi_squared_best = te_chi_squared
-                    te_best_fit_type = 'mtanh'
-                    number_of_te_mtanh_fits += 1
-            elif te_params is not None:
-                print('MTANH IS BEST FIT')
-                te_fitted_best = te_fitted
-                te_chi_squared_best = te_chi_squared
-                te_best_fit_type = 'mtanh'
-                number_of_te_mtanh_fits += 1
-            elif te_params_cubic is not None:
-                print('CUBIC IS BEST FIT')
-                te_fitted_best = te_fitted_cubic
-                te_chi_squared_best = te_chi_squared_cubic
-                te_best_fit_type = 'cubic'
-                number_of_te_cubic_fits += 1
-            else:
-                print('NO FITS WORKED')
-                te_fitted_best = None
-                te_chi_squared_best = None
-                te_best_fit_type = None
-                number_of_te_failed_fits += 1
+                    print('NO FITS WORKED')
+                    te_fitted_best = None
+                    te_chi_squared_best = None
+                    te_best_fit_type = None
+                    number_of_te_failed_fits += 1
 
 
-            # Te measurement floor is 20eV so set this as a minimum for the fitted profiles
-            # Highly recommended to keep this flag as True since fits can go negative otherwise.
-            if set_Te_floor_to_20eV == True:
+            # Measurement floor on the Thomson system is 20eV on C-Mod.
+            # Sometimes a good idea to enforce this floor in case the fit tries to go below zero at any points (particularly for very low temperature shots).
+            if set_Te_floor is not None:
                 if te_fitted_best is not None:
-                    te_fitted_best[te_fitted_best < 20] = 20
+                    te_fitted_best[te_fitted_best < set_Te_floor] = set_Te_floor
                
             ### FIT NE PROFILE ###
-
 
             # Try to get some reasonable initial guesses to help the mtanh fits converge.
             try:
@@ -471,73 +481,87 @@ def master_fit_ne_Te_1D(shot, t_min=0, t_max=5000, scale_core_TS_to_TCI = False,
             # print the reduced chi-squared values of the respective fits
             print(f'ne reduced chi squared cubic: {ne_chi_squared_cubic:.2f}')
             if ne_params is not None:
-                print(f'ne reduced chi squared mtanh: {ne_chi_squared:.2f}')            
+                print(f'ne reduced chi squared mtanh: {ne_chi_squared:.2f}')
 
-            
-            # Do not use the mtanh fit if there are fewer than 3 points in the pedestal region.
-            if ne_params is not None:
-                pedestal_start = ne_params[0] - ne_params[1]
-                pedestal_end = ne_params[0] + ne_params[1]
-                pedestal_mask = (total_psi_ne > pedestal_start) & (total_psi_ne < pedestal_end)
-                if len(total_psi_ne[pedestal_mask]) < 3:
-                    print(f'Reject Ne mtanh fit because there are only {len(total_psi_ne[pedestal_mask])} points in the pedestal (require at least 3)')
-                    ne_params = None
-                    ne_covariance = None
-                    ne_fitted = None
-            
-            
-            # Do not use the mtanh fit if the reduced chi-squared is below 0 or above 20.
-            if ne_params is not None:
-                if ne_chi_squared <= 0 or ne_chi_squared > 20:
-                    print('Reject Ne mtanh fit because the reduced chi squared is below 0 or greater than 20.')
-                    ne_params = None
-                    ne_covariance = None
-                    ne_fitted = None
-            
-            # Do not use the cubic fit if the reduced chi-squared is below 0 or above 20.
-            if ne_params_cubic is not None:
-                if ne_chi_squared_cubic <= 0 or ne_chi_squared_cubic > 20:
-                    print('Reject Ne cubic fit because the reduced chi squared is below 0 or greater than 20.')
-                    ne_params_cubic = None
-                    ne_covariance_cubic = None
-                    ne_fitted_cubic = None
-
-
-            # Choose the best fit based on the reduced chi-squared values.
-            if ne_params is not None and ne_params_cubic is not None:
-                if ne_chi_squared_cubic < ne_chi_squared:
-                    print('CUBIC IS BEST FIT')
-                    ne_fitted_best = ne_fitted_cubic
-                    ne_best_chi_squared = ne_chi_squared_cubic
-                    ne_best_fit_type = 'cubic'
-                    number_of_ne_cubic_fits += 1
+            if enforce_mtanh == True:
+                if ne_fitted is not None:
+                    ne_fitted_best = ne_fitted
+                    ne_chi_squared_best = ne_chi_squared
+                    ne_best_fit_type = 'mtanh'
                 else:
+                    ne_fitted_best = None
+                    ne_chi_squared_best = None
+                    ne_best_fit_type = None
+
+            else:          # Choose between the mtanh and the cubic fit.  
+                # Do not use the mtanh fit if there are fewer than 3 points in the pedestal region.
+                if ne_params is not None:
+                    pedestal_start = ne_params[0] - ne_params[1]
+                    pedestal_end = ne_params[0] + ne_params[1]
+                    pedestal_mask = (total_psi_ne > pedestal_start) & (total_psi_ne < pedestal_end)
+                    if len(total_psi_ne[pedestal_mask]) < 3:
+                        print(f'Reject Ne mtanh fit because there are only {len(total_psi_ne[pedestal_mask])} points in the pedestal (require at least 3)')
+                        plt.errorbar(total_psi_ne, total_ne, yerr=total_ne_err, fmt='o')
+                        plt.plot(generated_psi_grid, ne_fitted)
+                        plt.show()
+
+                        ne_params = None
+                        ne_covariance = None
+                        ne_fitted = None
+                
+                
+                # Do not use the mtanh fit if the reduced chi-squared is below 0 or above 20.
+                if ne_params is not None:
+                    if ne_chi_squared <= 0 or ne_chi_squared > 20:
+                        print('Reject Ne mtanh fit because the reduced chi squared is below 0 or greater than 20.')
+                        ne_params = None
+                        ne_covariance = None
+                        ne_fitted = None
+                
+                # Do not use the cubic fit if the reduced chi-squared is below 0 or above 20.
+                if ne_params_cubic is not None:
+                    if ne_chi_squared_cubic <= 0 or ne_chi_squared_cubic > 20:
+                        print('Reject Ne cubic fit because the reduced chi squared is below 0 or greater than 20.')
+                        ne_params_cubic = None
+                        ne_covariance_cubic = None
+                        ne_fitted_cubic = None
+
+
+                # Choose the best fit based on the reduced chi-squared values.
+                if ne_params is not None and ne_params_cubic is not None:
+                    if ne_chi_squared_cubic < ne_chi_squared:
+                        print('CUBIC IS BEST FIT')
+                        ne_fitted_best = ne_fitted_cubic
+                        ne_chi_squared_best = ne_chi_squared_cubic
+                        ne_best_fit_type = 'cubic'
+                        number_of_ne_cubic_fits += 1
+                    else:
+                        print('MTANH IS BEST FIT')
+                        ne_fitted_best = ne_fitted
+                        ne_chi_squared_best = ne_chi_squared
+                        ne_best_fit_type = 'mtanh'
+                        number_of_ne_mtanh_fits += 1
+
+                elif ne_params is not None:
                     print('MTANH IS BEST FIT')
                     ne_fitted_best = ne_fitted
-                    ne_best_chi_squared = ne_chi_squared
+                    ne_chi_squared_best = ne_chi_squared
                     ne_best_fit_type = 'mtanh'
                     number_of_ne_mtanh_fits += 1
 
-            elif ne_params is not None:
-                print('MTANH IS BEST FIT')
-                ne_fitted_best = ne_fitted
-                ne_best_chi_squared = ne_chi_squared
-                ne_best_fit_type = 'mtanh'
-                number_of_ne_mtanh_fits += 1
+                elif ne_params_cubic is not None:
+                    print('CUBIC IS BEST FIT')
+                    ne_fitted_best = ne_fitted_cubic
+                    ne_chi_squared_best = ne_chi_squared_cubic
+                    ne_best_fit_type = 'cubic'
+                    number_of_ne_cubic_fits += 1
 
-            elif ne_params_cubic is not None:
-                print('CUBIC IS BEST FIT')
-                ne_fitted_best = ne_fitted_cubic
-                ne_best_chi_squared = ne_chi_squared_cubic
-                ne_best_fit_type = 'cubic'
-                number_of_ne_cubic_fits += 1
-
-            else:
-                print('NO FITS WORKED')
-                ne_fitted_best = None
-                ne_best_chi_squared = None
-                ne_best_fit_type = None
-                number_of_ne_failed_fits += 1
+                else:
+                    print('NO FITS WORKED')
+                    ne_fitted_best = None
+                    ne_chi_squared_best = None
+                    ne_best_fit_type = None
+                    number_of_ne_failed_fits += 1
 
             # Option to estimate errors on the fits using a Monte-Carlo approach.
             if return_error_bars_on_fits == True:
@@ -594,7 +618,7 @@ def master_fit_ne_Te_1D(shot, t_min=0, t_max=5000, scale_core_TS_to_TCI = False,
 
 
             # OPTION TO SHIFT THE DATA AND FIT ACCORDING TO THE 2-PT MODEL
-            if shift_to_2pt_model == True:
+            if shift_to_2pt_model == True and te_fitted_best is not None:
                 Te_sep_eV = Teu_2pt_model(shot, time_in_s, lam_T_mm=1, geqdsk=4, pressure_opt = 3, lambdaq_opt=1) #lam_T_mm and geqdsk are just placeholders here. They don't do anything.
                 new_x, shift = apply_2pt_shift(generated_psi_grid, te_fitted_best, Te_sep_eV, 1, only_shift_edge=True) #separatrix in psi coords is just 1
                 print('T SEP: ', Te_sep_eV)
@@ -603,8 +627,9 @@ def master_fit_ne_Te_1D(shot, t_min=0, t_max=5000, scale_core_TS_to_TCI = False,
                 te_interp_function = interp1d(new_x, te_fitted_best, fill_value='extrapolate')
                 te_fitted_best = te_interp_function(generated_psi_grid)
 
-                ne_interp_function = interp1d(new_x, ne_fitted_best, fill_value='extrapolate')
-                ne_fitted_best = ne_interp_function(generated_psi_grid)
+                if ne_fitted_best is not None:
+                    ne_interp_function = interp1d(new_x, ne_fitted_best, fill_value='extrapolate')
+                    ne_fitted_best = ne_interp_function(generated_psi_grid)
             else:
                 shift = 0
 
@@ -647,7 +672,7 @@ def master_fit_ne_Te_1D(shot, t_min=0, t_max=5000, scale_core_TS_to_TCI = False,
 
                 # or just plot the best fit
                 if ne_fitted_best is not None:
-                    plt.plot(generated_psi_grid, ne_fitted_best, label = rf'best fit: $\chi^2$ = {ne_best_chi_squared:.2f}')
+                    plt.plot(generated_psi_grid, ne_fitted_best, label = rf'best fit: $\chi^2$ = {ne_chi_squared_best:.2f}')
                 if return_error_bars_on_fits == True:
                     plt.fill_between(generated_psi_grid, ne_fitted_best - list_of_ne_fitted_std, ne_fitted_best + list_of_ne_fitted_std, color='green', alpha=0.3)
                 plt.grid(linestyle='--', alpha=0.3)
