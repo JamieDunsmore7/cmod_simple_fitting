@@ -1172,60 +1172,339 @@ def master_fit_ne_Te_2D_quadratic(list_of_shots, list_of_t_min, list_of_t_max, t
 
 
 
-'''
-output_time_grid, generated_psi_grid, Rmid_grid, new_ne_values, new_ne_err, new_Te_values, new_Te_err = master_fit_ne_Te_2D_window_smoothing(1091210027, 650, 700)
 
-plt.plot(generated_psi_grid, new_ne_values[10])
-plt.fill_between(generated_psi_grid, new_ne_values[10] - new_ne_err[10], new_ne_values[10] + new_ne_err[10], alpha=0.5)
-plt.show()
+def master_fit_2D_alt_combined_shots(list_of_shots, list_of_t_min, list_of_t_max, smoothing_window=15):
+    '''
+    Exactly the same as the window_smoothing 2D fitting function, except that the 1D fitting
+    function (master_fit_ne_Te_1D) is used to do the fits at every time point.
+    This gives a bit more flexibility (since it also tries a cubic fit), but currently
+    does not have a post-fitting outlier rejection method.
 
-print(stop)
-'''
+    Return Rmid_grid should only be an option when a single shot is given.
 
+    TODO:
+    Add in functionality for the psi_to_Rmid_map to take in multiple shots. This shouldn't be too difficult but just haven't implemented it yet.
+    Implement some option for post-fit outlier rejection
+    Let this function also use a cubic to fit if it wants.
+    '''
 
-
-output_time_grid, generated_psi_grid, Rmid_grid, new_ne_values, new_ne_err, new_Te_values, new_Te_err = master_fit_2D_alt(1091210027, 587, 700)
-
-plt.plot(generated_psi_grid, new_ne_values[10])
-plt.fill_between(generated_psi_grid, new_ne_values[10] - new_ne_err[10], new_ne_values[10] + new_ne_err[10], alpha=0.5)
-plt.show()
-
-print(stop)
- 
-
-#master_fit_ne_Te_1D(1030523030, 587, 700, plot_the_fits=False, remove_zeros_before_fitting=True, shift_to_2pt_model=False, scale_core_TS_to_TCI=True, return_error_bars_on_fits=True, return_processed_raw_data=True)
-
-#master_fit_ne_Te_2D_window_smoothing(1091210027, 587, 700, smoothing_window=15)
-
-#master_fit_2D_alt(1091210027, 587, 700, smoothing_window=15)
+    # is a single shot is passed in, need to convert this to a 1 element list so I can cycle through it
+    if isinstance(list_of_shots, int):
+        list_of_shots = [list_of_shots]
+        list_of_t_min = [list_of_t_min]
+        list_of_t_max = [list_of_t_max]
 
 
+    # STORE THE RAW DATA FOR ALL SHOTS IN A 1D ARRAY (WITH CORRESPONDING TIMES) SO WEIGHTS CAN BE APPLIED
+    # All the elements in the dictionary are 1D arrays of the same length (i.e every Te value has a corresponding time, psi value and error bar)
+    raw_te_data_flattened = {
+        'times': [],
+        'psi': [],
+        'Te': [],
+        'Te_err': []
+    }
+
+    raw_ne_data_flattened = {
+        'times': [],
+        'psi': [],
+        'ne': [],
+        'ne_err': []
+    }
+
+    # Now psi is just the generated psi grid. Te and Te_err are 2D arrays with each row being a fit at a different time.'times' just contains these fit times
+    fitted_Te_data_at_Thomson_times = {
+        'times': [],
+        'Te': [],
+        'Te_err': []
+    }
+
+    fitted_ne_data_at_Thomson_times = {
+        'times': [],
+        'ne': [],
+        'ne_err': []
+    }
+
+    for individual_shot, individual_t_min, individual_t_max in zip(list_of_shots, list_of_t_min, list_of_t_max):
+
+        # get the ne and Te fits at each time point from the 1D fitting function
+        generated_psi_grid, list_of_Thomson_times_te_ms, list_of_te_fitted_at_Thomson_times, list_of_te_fitted_std_at_Thomson_times,\
+        list_of_te_reduced_chi_squared, list_of_te_fit_type,\
+        list_of_Thomson_times_ne_ms, list_of_ne_fitted_at_Thomson_times, list_of_ne_fitted_std_at_Thomson_times,\
+        list_of_ne_reduced_chi_squared, list_of_ne_fit_type,\
+        list_of_total_psi_te, list_of_total_te, list_of_total_te_err,\
+        list_of_total_psi_ne, list_of_total_ne, list_of_total_ne_err = master_fit_ne_Te_1D(individual_shot, individual_t_min, individual_t_max, plot_the_fits=False, remove_zeros_before_fitting=True, shift_to_2pt_model=True, return_processed_raw_data=True, return_error_bars_on_fits=True, use_edge_chi_squared=True, enforce_mtanh=True)
 
 
-generated_psi_grid,\
-list_of_successful_te_fit_times_ms,\
-list_fitted_te_profiles,\
-list_of_te_fit_errors,\
-list_of_te_reduced_chi_squared,\
-list_of_te_fit_type,\
-list_of_successful_ne_fit_times_ms,\
-list_fitted_ne_profiles,\
-list_of_ne_fit_errors,\
-list_of_ne_reduced_chi_squared,\
-list_of_ne_fit_type,\
-list_of_total_psi_te,\
-list_of_total_te,\
-list_of_total_te_err,\
-list_of_total_psi_ne,\
-list_of_total_ne,\
-list_of_total_ne_err = master_fit_ne_Te_1D(1030523030, 587, 700, plot_the_fits=False, remove_zeros_before_fitting=True, shift_to_2pt_model=False, scale_core_TS_to_TCI=True, return_error_bars_on_fits=True, return_processed_raw_data=True)
+        # CONVERT THE 2D ARRAYS OF RAW DATA INTO 1D ARRAYS SO THAT WEIGHTS CAN BE APPLIED AND THE SMOOTHED FITS CAN BE APPLIED
+        for idx in range(len(list_of_Thomson_times_te_ms)):
+            no_of_points = len(list_of_total_psi_te[idx])
 
-plt.errorbar(list_of_total_psi_te[0], list_of_total_te[0], yerr=list_of_total_te_err[0], fmt = 'o')
-plt.plot(generated_psi_grid, list_fitted_te_profiles[0])
-plt.fill_between(generated_psi_grid, list_fitted_te_profiles[0] - list_of_te_fit_errors[0], list_fitted_te_profiles[0] + list_of_te_fit_errors[0], alpha=0.5)
-plt.show()
+            raw_te_data_flattened['times'].extend((list_of_Thomson_times_te_ms[idx]*np.ones(no_of_points)) - individual_t_min) # use the time relative to the start of the window
+            raw_te_data_flattened['psi'].extend(list_of_total_psi_te[idx])
+            raw_te_data_flattened['Te'].extend(list_of_total_te[idx])
+            raw_te_data_flattened['Te_err'].extend(list_of_total_te_err[idx])
 
-plt.errorbar(list_of_total_psi_ne[0], list_of_total_ne[0], yerr=list_of_total_ne_err[0], fmt = 'o')
-plt.plot(generated_psi_grid, list_fitted_ne_profiles[0])
-plt.fill_between(generated_psi_grid, list_fitted_ne_profiles[0] - list_of_ne_fit_errors[0], list_fitted_ne_profiles[0] + list_of_ne_fit_errors[0], alpha=0.5)
-plt.show()
+            fitted_Te_data_at_Thomson_times['times'].append(list_of_Thomson_times_te_ms[idx] - individual_t_min)
+            fitted_Te_data_at_Thomson_times['Te'].append(list_of_te_fitted_at_Thomson_times[idx])
+            fitted_Te_data_at_Thomson_times['Te_err'].append(list_of_te_fitted_std_at_Thomson_times[idx])
+
+
+
+        for idx in range(len(list_of_Thomson_times_ne_ms)):
+            no_of_points = len(list_of_total_psi_ne[idx])
+
+            raw_ne_data_flattened['times'].extend((list_of_Thomson_times_ne_ms[idx]*np.ones(no_of_points)) - individual_t_min) # use the time relative to the start of the window
+            raw_ne_data_flattened['psi'].extend(list_of_total_psi_ne[idx])
+            raw_ne_data_flattened['ne'].extend(list_of_total_ne[idx])
+            raw_ne_data_flattened['ne_err'].extend(list_of_total_ne_err[idx])
+
+            fitted_ne_data_at_Thomson_times['times'].append(list_of_Thomson_times_ne_ms[idx] - individual_t_min)
+            fitted_ne_data_at_Thomson_times['ne'].append(list_of_ne_fitted_at_Thomson_times[idx])
+            fitted_ne_data_at_Thomson_times['ne_err'].append(list_of_ne_fitted_std_at_Thomson_times[idx])
+
+
+    for key in raw_te_data_flattened.keys():
+        raw_te_data_flattened[key] = np.array(raw_te_data_flattened[key])
+    
+    for key in raw_ne_data_flattened.keys():
+        raw_ne_data_flattened[key] = np.array(raw_ne_data_flattened[key])
+    
+    for key in fitted_Te_data_at_Thomson_times.keys():
+        fitted_Te_data_at_Thomson_times[key] = np.array(fitted_Te_data_at_Thomson_times[key])
+
+    for key in fitted_ne_data_at_Thomson_times.keys():
+        fitted_ne_data_at_Thomson_times[key] = np.array(fitted_ne_data_at_Thomson_times[key])
+
+
+    sorted_ne_indices = np.argsort(raw_ne_data_flattened['times'])
+    for key in raw_ne_data_flattened.keys():
+        raw_ne_data_flattened[key] = raw_ne_data_flattened[key][sorted_ne_indices]
+
+    sorted_te_indices = np.argsort(raw_te_data_flattened['times'])
+    for key in raw_te_data_flattened.keys():
+        raw_te_data_flattened[key] = raw_te_data_flattened[key][sorted_te_indices]
+
+
+
+    # get an average errorbar
+    average_te_error_band = np.mean(fitted_Te_data_at_Thomson_times['Te_err'], axis=0) #just take an average for the standard deviation
+    average_ne_error_band = np.mean(fitted_ne_data_at_Thomson_times['ne_err'], axis=0) #just take an average for the standard deviation
+
+
+
+    # Find the biggest time window and use this as the time grid
+    largest_t_delta = 0
+    for t_min, t_max in zip(list_of_t_min, list_of_t_max):
+        t_delta = t_max - t_min
+        if t_delta > largest_t_delta:
+            largest_t_delta = t_delta
+
+
+    output_time_grid = np.arange(0, largest_t_delta, 1) # return fits on 1ms timebase
+
+
+    te_params_from_last_successful_fit = None
+    ne_params_from_last_successful_fit = None
+
+
+    # Lists to store the smoothed fits
+    te_fitted_at_output_times = {
+        'Te': [],
+        'Te_err': [],
+        'Te_successful_fit_mask': []
+    }
+
+    ne_fitted_at_output_times = {
+        'ne': [],
+        'ne_err': [],
+        'ne_successful_fit_mask': []
+    }
+
+
+    # now do the window smoothing
+    for t_idx in range(len(output_time_grid)):
+        time = output_time_grid[t_idx]
+
+        print('TIME: ', time)
+
+        #apply the Gaussian filter by making the error bars larger for further away points
+        ne_weights = 1 / np.sqrt(np.exp((-1/2) * (raw_ne_data_flattened['times'] - time)**2 / (smoothing_window**2)))
+        raw_ne_data_flattened['ne_err_weights_applied'] = ne_weights*raw_ne_data_flattened['ne_err']
+
+        Te_weights = 1 / np.sqrt(np.exp((-1/2) * (raw_te_data_flattened['times'] - time)**2 / (smoothing_window**2)))
+        raw_te_data_flattened['Te_err_weights_applied'] = Te_weights*raw_te_data_flattened['Te_err']
+
+
+        # FITTING
+
+        # some initial te guesses
+        list_of_te_guesses = []
+        list_of_te_guesses.append([ 9.92614859e-01,  4.01791101e-02,  2.55550908e+02,  1.28542623e+01,  2.17777084e-01, -3.45196862e-03,  1.42947373e-04])
+        if te_params_from_last_successful_fit is not None:
+            list_of_te_guesses.insert(0, te_params_from_last_successful_fit) #use the parameters from the last successful fit as a first guess
+
+        for te_guess_idx in range(len(list_of_te_guesses)):
+            te_guess = list_of_te_guesses[te_guess_idx]
+            try:
+                te_params, te_covariance = curve_fit(Osborne_Tanh_cubic, raw_te_data_flattened['psi'], raw_te_data_flattened['Te'], p0=te_guess, sigma=raw_te_data_flattened['Te_err_weights_applied'], absolute_sigma=False, maxfev=2000, bounds=([0.85, 0, 0, -0.001, -np.inf, -np.inf, -np.inf], np.inf)) #should now be in psi
+                te_fitted = Osborne_Tanh_cubic(generated_psi_grid, te_params[0], te_params[1], te_params[2], te_params[3], te_params[4], te_params[5], te_params[6])
+
+                #plt.plot(generated_psi_grid, te_fitted)
+                #plt.scatter(list_of_raw_ne_xvalues_shifted, list_of_raw_Te, marker='x')
+                #plt.show()
+                te_fitted_at_output_times['Te'].append(te_fitted)
+                te_fitted_at_output_times['Te_err'].append(average_te_error_band)
+                te_fitted_at_output_times['Te_successful_fit_mask'].append(True)
+                te_params_from_last_successful_fit = te_params # to be used as a first guess for the next time point
+                break #guess worked so exit the for loop
+            except:
+                if te_guess_idx == len(list_of_te_guesses) - 1:
+                    # If all the guesses failed, set the fit parameters to none
+                    te_fitted_at_output_times['Te'].append(np.full(len(generated_psi_grid), np.nan))
+                    te_fitted_at_output_times['Te_err'].append(np.full(len(generated_psi_grid), np.nan))
+
+                    te_params = None
+                    te_covariance = None
+                    te_fitted = None
+                    te_fitted_at_output_times['Te_successful_fit_mask'].append(False)
+                    print('TE FIT FAILED')
+                else:
+                    # move onto the next guess
+                    continue
+
+
+
+        # some initial ne guesses
+        list_of_ne_guesses = []
+        list_of_ne_guesses.append([1.00604712, 0.037400836, 2.10662412, 0.0168897974, -0.0632778417, 0.00229233952, -2.0627212e-05]) #good initial guess for 650kA shots
+        list_of_ne_guesses.append([1.02123755e+00,  5.02744526e-02,  2.54219267e+00, -9.99999694e-04, 2.58724602e-02, -2.32961078e-03,  4.20279037e-05]) #good guess for 1MA shots
+        if ne_params_from_last_successful_fit is not None:
+            list_of_ne_guesses.insert(0, ne_params_from_last_successful_fit) #use the parameters from the last successful fit as a first guess
+
+
+        for ne_guess_idx in range(len(list_of_ne_guesses)):
+            ne_guess = list_of_ne_guesses[ne_guess_idx]
+            try:
+                print('ne guess')
+                print(ne_guess)
+                ne_params, ne_covariance = curve_fit(Osborne_Tanh_cubic, raw_ne_data_flattened['psi'], raw_ne_data_flattened['ne']/1e20, p0=ne_guess, sigma=raw_ne_data_flattened['ne_err_weights_applied']/1e20, absolute_sigma=False, maxfev=2000, bounds=([0.85, 0.001, 0, -0.001, -np.inf, -np.inf, -np.inf], [1.05, np.inf, np.inf, np.inf, np.inf, np.inf, np.inf])) #should now be in psi
+                ne_fitted = 1e20*Osborne_Tanh_cubic(generated_psi_grid, ne_params[0], ne_params[1], ne_params[2], ne_params[3], ne_params[4], ne_params[5], ne_params[6])
+                #plt.plot(generated_psi_grid, ne_fitted)
+                #plt.scatter(list_of_raw_ne_xvalues_shifted, list_of_raw_ne, marker='x')
+
+
+                ne_fitted_at_output_times['ne'].append(ne_fitted)
+                ne_fitted_at_output_times['ne_err'].append(average_ne_error_band)
+                ne_fitted_at_output_times['ne_successful_fit_mask'].append(True)
+                ne_params_from_last_successful_fit = ne_params # to be used as a first guess for the next time point
+
+                break #guess worked so exit the for loop
+            except:
+                if ne_guess_idx == len(list_of_ne_guesses) - 1:
+                    # If all the guesses failed, set the fit parameters to none
+                    ne_fitted_at_output_times['ne'].append(np.full(len(generated_psi_grid), np.nan))
+                    ne_fitted_at_output_times['ne_err'].append(np.full(len(generated_psi_grid), np.nan))
+
+                    ne_params = None
+                    ne_covariance = None
+                    ne_fitted = None
+                    ne_fitted_at_output_times['ne_successful_fit_mask'].append(False)
+                    print('NE FIT FAILED')
+                else:
+                    # move onto the next guess
+                    continue
+        
+        if t_idx == 90:
+            for idx in range(len(fitted_Te_data_at_Thomson_times['Te'])):
+                if fitted_Te_data_at_Thomson_times['times'][idx] > 80 and fitted_Te_data_at_Thomson_times['times'][idx] < 100:
+                    plt.plot(generated_psi_grid, fitted_Te_data_at_Thomson_times['Te'][idx], label = fitted_Te_data_at_Thomson_times['times'][idx])
+            
+            plt.plot(generated_psi_grid, te_fitted, label = 'smoothed fit', color='black')
+            plt.axvline(x=1, color='black', linestyle='--')
+            plt.grid(linestyle='--', alpha=0.3)
+            plt.legend()
+            plt.show()
+
+
+    for key in ne_fitted_at_output_times.keys():
+        ne_fitted_at_output_times[key] = np.array(ne_fitted_at_output_times[key])
+
+    for key in te_fitted_at_output_times.keys():
+        te_fitted_at_output_times[key] = np.array(te_fitted_at_output_times[key])
+
+
+    combined_successful_fit_mask = np.logical_and(te_fitted_at_output_times['Te_successful_fit_mask'], ne_fitted_at_output_times['ne_successful_fit_mask']) # make sure the fit succeeded for both ne and Te
+    
+    output_time_grid = output_time_grid[combined_successful_fit_mask]
+    ne_fitted_at_output_times['ne'] = ne_fitted_at_output_times['ne'][combined_successful_fit_mask]
+    te_fitted_at_output_times['Te'] = te_fitted_at_output_times['Te'][combined_successful_fit_mask]
+    ne_fitted_at_output_times['ne_err'] = ne_fitted_at_output_times['ne_err'][combined_successful_fit_mask]
+    te_fitted_at_output_times['Te_err'] = te_fitted_at_output_times['Te_err'][combined_successful_fit_mask]
+
+
+
+
+    for idx in range(len(output_time_grid)):
+        if idx % 20 == 0:
+            plt.plot(generated_psi_grid, ne_fitted_at_output_times['ne'][idx], label = output_time_grid[idx])
+            plt.fill_between(generated_psi_grid, ne_fitted_at_output_times['ne'][idx] - ne_fitted_at_output_times['ne_err'][idx], ne_fitted_at_output_times['ne'][idx] + ne_fitted_at_output_times['ne_err'][idx], alpha=0.5)
+            plt.legend()
+    plt.show()
+    for idx in range(len(output_time_grid)):
+        if idx % 20 == 0:
+            plt.plot(generated_psi_grid, te_fitted_at_output_times['Te'][idx], label = output_time_grid[idx])
+            plt.fill_between(generated_psi_grid, te_fitted_at_output_times['Te'][idx] - te_fitted_at_output_times['Te_err'][idx], te_fitted_at_output_times['Te'][idx] + te_fitted_at_output_times['Te_err'][idx], alpha=0.5)
+            plt.legend()
+    plt.show()
+
+
+
+
+
+    radii_to_plot = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 0.95, 0.96, 0.97, 0.98, 0.99, 1.0, 1.01, 1.02, 1.03, 1.04, 1.05]
+    list_of_generated_psi_grid_indices = [10, 20, 30, 40, 50, 60, 70, 80, 130, 155, 160, 165, 170, 175, 180, 185, 190, 195, 200, 205]
+    # Create figure to show the evolution of each radial location
+    fig, axs = plt.subplots(5, 4, figsize=(20, 15))
+
+    for idx, ax in enumerate(axs.flatten()):
+        print('idx')
+        print(idx)
+        #cycle through every psi value and plot its evolution in time.
+        psi_value_to_evolve = radii_to_plot[idx]
+        psi_idx = list_of_generated_psi_grid_indices[idx]
+        print('psi_idx')
+        print(psi_idx)
+        ax.scatter(output_time_grid, ne_fitted_at_output_times['ne'][:, psi_idx], label=f'psi = {psi_value_to_evolve:.2f}', marker='o')
+        ax.scatter(fitted_ne_data_at_Thomson_times['times'], fitted_ne_data_at_Thomson_times['ne'][:, psi_idx], marker='x', color='red')
+        ax.tick_params(axis='both', which='major', labelsize=6)
+        ax.grid(True)
+        ax.legend()
+    
+    plt.tight_layout()
+    plt.show()
+    
+
+    fig, axs = plt.subplots(5, 4, figsize=(20, 15))
+
+    for idx, ax in enumerate(axs.flatten()):
+        #cycle through every psi value and plot its evolution in time.
+        psi_value_to_evolve = radii_to_plot[idx]
+        psi_idx = list_of_generated_psi_grid_indices[idx]
+
+        ax.plot(output_time_grid, te_fitted_at_output_times['Te'][:, psi_idx], label=f'psi = {psi_value_to_evolve:.2f}')
+        ax.scatter(fitted_Te_data_at_Thomson_times['times'], fitted_Te_data_at_Thomson_times['Te'][:, psi_idx], marker='x', color='red')
+        ax.tick_params(axis='both', which='major', labelsize=6)
+        ax.grid(True)
+        ax.legend()
+    
+    plt.tight_layout()
+    plt.show()
+
+
+    Rmid_grid = psi_to_Rmid_map_multiple_shots(list_of_shots, list_of_t_min, list_of_t_max, generated_psi_grid, output_time_grid)
+
+
+
+
+    return output_time_grid, generated_psi_grid, Rmid_grid, ne_fitted_at_output_times['ne'], ne_fitted_at_output_times['ne_err'], te_fitted_at_output_times['Te'], te_fitted_at_output_times['Te_err']
+
