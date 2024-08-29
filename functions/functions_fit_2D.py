@@ -479,7 +479,7 @@ def master_fit_ne_Te_2D_window_smoothing(shot, t_min, t_max, smoothing_window = 
 
 
 
-    new_times_for_results = np.arange(0, t_max-t_min, 1)
+    output_time_grid = np.arange(0, t_max-t_min, 1)
 
     list_of_times = np.array(list_of_times)
     list_of_raw_ne_xvalues_shifted = np.array(list_of_raw_ne_xvalues_shifted)
@@ -500,12 +500,9 @@ def master_fit_ne_Te_2D_window_smoothing(shot, t_min, t_max, smoothing_window = 
     successful_ne_fit_mask = []
 
 
-    list_of_ne_params_that_worked = []
-    list_of_indices_that_worked = []
-
     # now do the window smoothing
-    for t_idx in range(len(new_times_for_results)):
-        time = new_times_for_results[t_idx]
+    for t_idx in range(len(output_time_grid)):
+        time = output_time_grid[t_idx]
 
         print('TIME: ', time)
 
@@ -594,8 +591,6 @@ def master_fit_ne_Te_2D_window_smoothing(shot, t_min, t_max, smoothing_window = 
                 list_of_ne_fitted_error.append(average_ne_error_band)
                 successful_ne_fit_mask.append(True)
                 ne_params_from_last_successful_fit = ne_params # to be used as a first guess for the next time point
-                list_of_ne_params_that_worked.append(ne_params)
-                list_of_indices_that_worked.append(t_idx)
 
                 break #guess worked so exit the for loop
             except:
@@ -651,7 +646,7 @@ def master_fit_ne_Te_2D_window_smoothing(shot, t_min, t_max, smoothing_window = 
 
 
     combined_successful_fit_mask = np.logical_and(successful_te_fit_mask, successful_ne_fit_mask) # make sure the fit succeeded for both ne and Te
-    new_times_for_results = new_times_for_results[combined_successful_fit_mask]
+    output_time_grid = output_time_grid[combined_successful_fit_mask]
 
     list_of_ne_fitted = list_of_ne_fitted[combined_successful_fit_mask]
     list_of_te_fitted = list_of_te_fitted[combined_successful_fit_mask]
@@ -668,15 +663,15 @@ def master_fit_ne_Te_2D_window_smoothing(shot, t_min, t_max, smoothing_window = 
 
     
 
-    for idx in range(len(new_times_for_results)):
+    for idx in range(len(output_time_grid)):
         if idx % 20 == 0:
-            plt.plot(generated_psi_grid, list_of_ne_fitted[idx], label = new_times_for_results[idx])
+            plt.plot(generated_psi_grid, list_of_ne_fitted[idx], label = output_time_grid[idx])
             plt.fill_between(generated_psi_grid, list_of_ne_fitted[idx] - list_of_ne_fitted_error[idx], list_of_ne_fitted[idx] + list_of_ne_fitted_error[idx], alpha=0.5)
             plt.legend()
     plt.show()
-    for idx in range(len(new_times_for_results)):
+    for idx in range(len(output_time_grid)):
         if idx % 20 == 0:
-            plt.plot(generated_psi_grid, list_of_te_fitted[idx], label = new_times_for_results[idx])
+            plt.plot(generated_psi_grid, list_of_te_fitted[idx], label = output_time_grid[idx])
             plt.fill_between(generated_psi_grid, list_of_te_fitted[idx] - list_of_te_fitted_error[idx], list_of_te_fitted[idx] + list_of_te_fitted_error[idx], alpha=0.5)
             plt.legend()
     plt.show()
@@ -698,7 +693,7 @@ def master_fit_ne_Te_2D_window_smoothing(shot, t_min, t_max, smoothing_window = 
         psi_idx = list_of_generated_psi_grid_indices[idx]
         print('psi_idx')
         print(psi_idx)
-        ax.scatter(new_times_for_results, list_of_ne_fitted[:, psi_idx], label=f'psi = {psi_value_to_evolve:.2f}', marker='o')
+        ax.scatter(output_time_grid, list_of_ne_fitted[:, psi_idx], label=f'psi = {psi_value_to_evolve:.2f}', marker='o')
         ax.scatter(list_of_initial_fit_times_for_checking_smoothing, list_of_ne_fitted_at_Thomson_times[:, psi_idx], marker='x', color='red')
         ax.tick_params(axis='both', which='major', labelsize=6)
         ax.grid(True)
@@ -715,7 +710,7 @@ def master_fit_ne_Te_2D_window_smoothing(shot, t_min, t_max, smoothing_window = 
         psi_value_to_evolve = radii_to_plot[idx]
         psi_idx = list_of_generated_psi_grid_indices[idx]
 
-        ax.plot(new_times_for_results, list_of_te_fitted[:, psi_idx], label=f'psi = {psi_value_to_evolve:.2f}')
+        ax.plot(output_time_grid, list_of_te_fitted[:, psi_idx], label=f'psi = {psi_value_to_evolve:.2f}')
         ax.scatter(list_of_initial_fit_times_for_checking_smoothing, list_of_te_fitted_at_Thomson_times[:, psi_idx], marker='x', color='red')
         ax.tick_params(axis='both', which='major', labelsize=6)
         ax.grid(True)
@@ -724,12 +719,12 @@ def master_fit_ne_Te_2D_window_smoothing(shot, t_min, t_max, smoothing_window = 
     plt.tight_layout()
     plt.show()
 
-    Rmid_grid = psi_to_Rmid_map(shot, t_min, t_max, generated_psi_grid, new_times_for_results) #this is a 2D array of Rmid values at every psi value at every time point
+    Rmid_grid = psi_to_Rmid_map(shot, t_min, t_max, generated_psi_grid, output_time_grid) #this is a 2D array of Rmid values at every psi value at every time point
 
 
 
 
-    return new_times_for_results, generated_psi_grid, Rmid_grid, list_of_ne_fitted, list_of_ne_fitted_error, list_of_te_fitted, list_of_te_fitted_error
+    return output_time_grid, generated_psi_grid, Rmid_grid, list_of_ne_fitted, list_of_ne_fitted_error, list_of_te_fitted, list_of_te_fitted_error
 
 
 
