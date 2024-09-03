@@ -64,7 +64,7 @@ def remove_zeros_from_ne_and_Te_simultaneously(xdata, ne, Te, ne_err, Te_err, co
 
     DESCRIPTION
     --------
-    NOTE: this function performs exactly the same task as remove_zeros, but it removes zeros from BOTH ne and Te if EITHER is zero.
+    NOTE: this function performs exactly the same task as remove_zeros, but it removes points from BOTH ne and Te if EITHER is zero.
     This keeps the ne and Te arrays the same length, which is helpful later on.
     '''
 
@@ -83,7 +83,7 @@ def remove_zeros_from_ne_and_Te_simultaneously(xdata, ne, Te, ne_err, Te_err, co
     new_Te = Te[combined_mask]
     new_ne_err = ne_err[combined_mask]
     new_Te_err = Te_err[combined_mask]
-    return new_ne_xvalues, new_ne_xvalues, new_ne, new_Te, new_ne_err, new_Te_err
+    return new_ne_xvalues, new_Te_xvalues, new_ne, new_Te, new_ne_err, new_Te_err
 
 
 def add_SOL_zeros(xdata, ydata, y_error):
