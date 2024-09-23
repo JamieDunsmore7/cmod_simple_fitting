@@ -20,4 +20,5 @@ The fits are returned in a dictionary (saved as a .pickle file).
 - [x] Add in the quadratic function option for smoothing
 - [ ] Clean up some of the long functions?
 - [ ] Add in options to do a combined fit for multiple different shots/times
+- [ ] Add in option to set a floor on ne and Te in the 2D fitting routines. Currently, some very small negative ne values in the SOL are causing a lot of things to break
 

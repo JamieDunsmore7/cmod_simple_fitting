@@ -1,0 +1,11 @@
+# all plots
+
+*.png
+*.pdf
+*.txt
+*.pkl
+*.npy
+*.csv
+
+/jamie_APS
+

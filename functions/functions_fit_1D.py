@@ -21,7 +21,7 @@ from functions.functions_two_point_model import *
 
 
 
-def master_fit_ne_Te_1D(shot, t_min=0, t_max=5000, scale_core_TS_to_TCI = False, set_Te_floor = None, set_minimum_errorbar = True, 
+def master_fit_ne_Te_1D(shot, t_min=0, t_max=5000, scale_core_TS_to_TCI = False, set_Te_floor = None, set_ne_floor = None, set_minimum_errorbar = True, 
                         remove_zeros_before_fitting = True, add_zero_in_SOL = True, shift_to_2pt_model=False, plot_the_fits = False,
                         return_processed_raw_data = False, return_error_bars_on_fits = False, use_edge_chi_squared = False, enforce_mtanh = True):
     '''
@@ -32,7 +32,8 @@ def master_fit_ne_Te_1D(shot, t_min=0, t_max=5000, scale_core_TS_to_TCI = False,
     t_max: float, maximum time in ms
 
     scale_core_TS_to_TCI: boolean, if True, the core Thomson data is scaled to match the interferometry data over the course of the shot.
-    set_Te_floor: integer, if not None, this sets a minimum value for the Te profile at all time points. 
+    set_Te_floor: integer, if not None, this sets a minimum value for the Te profile at all time points.
+    set_ne_floor: integer, if not None, this sets a minimum value for the ne profile at all time points.
     set_minimum_errorbar: boolean, if True, a minimum errorbar is set for all points (this is because sometimes the error bars have been set to zero in the core, messing up the fits)
     remove_zeros_before_fitting: boolean, if True, zeros are removed from the data before fitting. Deafult is to only remove zeros < psi = 1, but this can be modified.
     add_zero_in_SOL: boolean, if True, a zero is added at the SOL edge to help the mtanh fit (hardcoded at psi=1.05).
@@ -414,6 +415,10 @@ def master_fit_ne_Te_1D(shot, t_min=0, t_max=5000, scale_core_TS_to_TCI = False,
             if set_Te_floor is not None:
                 if te_fitted_best is not None:
                     te_fitted_best[te_fitted_best < set_Te_floor] = set_Te_floor
+
+            if set_ne_floor is not None:
+                if ne_fitted_best is not None:
+                    ne_fitted_best[ne_fitted_best < set_ne_floor] = set_ne_floor
                
             ### FIT NE PROFILE ###
 
