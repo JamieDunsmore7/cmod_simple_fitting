@@ -490,7 +490,7 @@ def master_fit_ne_Te_1D(shot, t_min=0, t_max=5000, scale_core_TS_to_TCI = False,
                         continue
 
             
-            if ne_params is None:
+            if ne_params is None and verbose > 0:
                 print('Ne mtanh fit failed.')
 
 
@@ -502,9 +502,10 @@ def master_fit_ne_Te_1D(shot, t_min=0, t_max=5000, scale_core_TS_to_TCI = False,
             ne_chi_squared_cubic = reduced_chi_squared_inside_separatrix(total_psi_ne, total_ne, ne_fitted_cubic_for_chi_squared, total_ne_err, len(ne_params_cubic), only_edge = use_edge_chi_squared)
 
             # print the reduced chi-squared values of the respective fits
-            print(f'ne reduced chi squared cubic: {ne_chi_squared_cubic:.2f}')
-            if ne_params is not None:
-                print(f'ne reduced chi squared mtanh: {ne_chi_squared:.2f}')
+            if verbose > 0:
+                print(f'ne reduced chi squared cubic: {ne_chi_squared_cubic:.2f}')
+                if ne_params is not None:
+                    print(f'ne reduced chi squared mtanh: {ne_chi_squared:.2f}')
 
             if enforce_mtanh == True:
                 if ne_fitted is not None:
@@ -523,7 +524,8 @@ def master_fit_ne_Te_1D(shot, t_min=0, t_max=5000, scale_core_TS_to_TCI = False,
                     pedestal_end = ne_params[0] + ne_params[1]
                     pedestal_mask = (total_psi_ne > pedestal_start) & (total_psi_ne < pedestal_end)
                     if len(total_psi_ne[pedestal_mask]) < 3:
-                        print(f'Reject Ne mtanh fit because there are only {len(total_psi_ne[pedestal_mask])} points in the pedestal (require at least 3)')
+                        if verbose > 0:
+                            print(f'Reject Ne mtanh fit because there are only {len(total_psi_ne[pedestal_mask])} points in the pedestal (require at least 3)')
                         plt.errorbar(total_psi_ne, total_ne, yerr=total_ne_err, fmt='o')
                         plt.plot(generated_psi_grid, ne_fitted)
                         plt.show()
@@ -536,7 +538,8 @@ def master_fit_ne_Te_1D(shot, t_min=0, t_max=5000, scale_core_TS_to_TCI = False,
                 # Do not use the mtanh fit if the reduced chi-squared is below 0 or above 20.
                 if ne_params is not None:
                     if ne_chi_squared <= 0 or ne_chi_squared > 20:
-                        print('Reject Ne mtanh fit because the reduced chi squared is below 0 or greater than 20.')
+                        if verbose > 0:
+                            print('Reject Ne mtanh fit because the reduced chi squared is below 0 or greater than 20.')
                         ne_params = None
                         ne_covariance = None
                         ne_fitted = None
@@ -544,7 +547,8 @@ def master_fit_ne_Te_1D(shot, t_min=0, t_max=5000, scale_core_TS_to_TCI = False,
                 # Do not use the cubic fit if the reduced chi-squared is below 0 or above 20.
                 if ne_params_cubic is not None:
                     if ne_chi_squared_cubic <= 0 or ne_chi_squared_cubic > 20:
-                        print('Reject Ne cubic fit because the reduced chi squared is below 0 or greater than 20.')
+                        if verbose > 0:
+                            print('Reject Ne cubic fit because the reduced chi squared is below 0 or greater than 20.')
                         ne_params_cubic = None
                         ne_covariance_cubic = None
                         ne_fitted_cubic = None
@@ -553,34 +557,39 @@ def master_fit_ne_Te_1D(shot, t_min=0, t_max=5000, scale_core_TS_to_TCI = False,
                 # Choose the best fit based on the reduced chi-squared values.
                 if ne_params is not None and ne_params_cubic is not None:
                     if ne_chi_squared_cubic < ne_chi_squared:
-                        print('CUBIC IS BEST FIT')
+                        if verbose > 0:
+                            print('CUBIC IS BEST FIT')
                         ne_fitted_best = ne_fitted_cubic
                         ne_chi_squared_best = ne_chi_squared_cubic
                         ne_best_fit_type = 'cubic'
                         number_of_ne_cubic_fits += 1
                     else:
-                        print('MTANH IS BEST FIT')
+                        if verbose > 0:
+                            print('MTANH IS BEST FIT')
                         ne_fitted_best = ne_fitted
                         ne_chi_squared_best = ne_chi_squared
                         ne_best_fit_type = 'mtanh'
                         number_of_ne_mtanh_fits += 1
 
                 elif ne_params is not None:
-                    print('MTANH IS BEST FIT')
+                    if verbose > 0:
+                        print('MTANH IS BEST FIT')
                     ne_fitted_best = ne_fitted
                     ne_chi_squared_best = ne_chi_squared
                     ne_best_fit_type = 'mtanh'
                     number_of_ne_mtanh_fits += 1
 
                 elif ne_params_cubic is not None:
-                    print('CUBIC IS BEST FIT')
+                    if verbose > 0:
+                        print('CUBIC IS BEST FIT')
                     ne_fitted_best = ne_fitted_cubic
                     ne_chi_squared_best = ne_chi_squared_cubic
                     ne_best_fit_type = 'cubic'
                     number_of_ne_cubic_fits += 1
 
                 else:
-                    print('NO FITS WORKED')
+                    if verbose > 0:
+                        print('NO FITS WORKED')
                     ne_fitted_best = None
                     ne_chi_squared_best = None
                     ne_best_fit_type = None
@@ -738,22 +747,23 @@ def master_fit_ne_Te_1D(shot, t_min=0, t_max=5000, scale_core_TS_to_TCI = False,
     
 
 
-    print('Number of Time points')
-    print(len(Thomson_times))
+    if verbose>0:
+        print('Number of Time points')
+        print(len(Thomson_times))
 
-    print('Number of Te cubic fits')
-    print(number_of_te_cubic_fits)
-    print('Number of Te mtanh fits')
-    print(number_of_te_mtanh_fits)
-    print('Number of Te failed fits')
-    print(number_of_te_failed_fits)
+        print('Number of Te cubic fits')
+        print(number_of_te_cubic_fits)
+        print('Number of Te mtanh fits')
+        print(number_of_te_mtanh_fits)
+        print('Number of Te failed fits')
+        print(number_of_te_failed_fits)
 
-    print('Number of Ne cubic fits')
-    print(number_of_ne_cubic_fits)
-    print('Number of Ne mtanh fits')
-    print(number_of_ne_mtanh_fits)
-    print('Number of Ne failed fits')
-    print(number_of_ne_failed_fits)
+        print('Number of Ne cubic fits')
+        print(number_of_ne_cubic_fits)
+        print('Number of Ne mtanh fits')
+        print(number_of_ne_mtanh_fits)
+        print('Number of Ne failed fits')
+        print(number_of_ne_failed_fits)
 
     quantities_to_return = [
         generated_psi_grid,
