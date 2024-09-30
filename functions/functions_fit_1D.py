@@ -765,33 +765,58 @@ def master_fit_ne_Te_1D(shot, t_min=0, t_max=5000, scale_core_TS_to_TCI = False,
         print('Number of Ne failed fits')
         print(number_of_ne_failed_fits)
 
-    quantities_to_return = [
-        generated_psi_grid,
-        list_of_successful_te_fit_times_ms,
-        list_fitted_te_profiles,
-        list_of_te_reduced_chi_squared,
-        list_of_te_fit_type,
-        list_of_successful_ne_fit_times_ms,
-        list_fitted_ne_profiles,
-        list_of_ne_reduced_chi_squared,
-        list_of_ne_fit_type
-    ]
+    # quantities_to_return = [
+    #     generated_psi_grid,
+    #     list_of_successful_te_fit_times_ms,
+    #     list_fitted_te_profiles,
+    #     list_of_te_reduced_chi_squared,
+    #     list_of_te_fit_type,
+    #     list_of_successful_ne_fit_times_ms,
+    #     list_fitted_ne_profiles,
+    #     list_of_ne_reduced_chi_squared,
+    #     list_of_ne_fit_type
+    # ]
+
+    # if return_error_bars_on_fits == True:
+    #     quantities_to_return.insert(3, list_of_te_fit_errors)
+    #     quantities_to_return.insert(8, list_of_ne_fit_errors)
+
+    # if return_processed_raw_data == True:
+    # quantities_to_return.extend([
+    #     list_of_total_psi_te,
+    #     list_of_total_te,
+    #     list_of_total_te_err,
+    #     list_of_total_psi_ne,
+    #     list_of_total_ne,
+    #     list_of_total_ne_err
+    # ])
+
+
+
+    quantities_to_return = {
+        'generated_psi_grid': generated_psi_grid,
+        'te_fit_times_ms': list_of_successful_te_fit_times_ms,
+        'te_fitted_profile': list_fitted_te_profiles,
+        'te_reduced_chi_squared': list_of_te_reduced_chi_squared,
+        'te_fit_type': list_of_te_fit_type,
+        'ne_fit_times_ms': list_of_successful_ne_fit_times_ms,
+        'ne_fitted_profiles': list_fitted_ne_profiles,
+        'ne_reduced_chi_squared': list_of_ne_reduced_chi_squared,
+        'ne_fit_type': list_of_ne_fit_type,
+    }
 
     if return_error_bars_on_fits == True:
-        quantities_to_return.insert(3, list_of_te_fit_errors)
-        quantities_to_return.insert(8, list_of_ne_fit_errors)
+        quantities_to_return['te_fit_errors'] = list_of_te_fit_errors
+        quantities_to_return['ne_fit_errors'] = list_of_ne_fit_errors
 
     if return_processed_raw_data == True:
-        quantities_to_return.extend([
-            list_of_total_psi_te,
-            list_of_total_te,
-            list_of_total_te_err,
-            list_of_total_psi_ne,
-            list_of_total_ne,
-            list_of_total_ne_err
-        ])
+        quantities_to_return['total_psi_te'] = list_of_total_psi_te
+        quantities_to_return['total_te'] = list_of_total_te
+        quantities_to_return['total_te_err'] = list_of_total_te_err
+        quantities_to_return['total_psi_ne'] = list_of_total_psi_ne
+        quantities_to_return['total_ne'] = list_of_total_ne
+        quantities_to_return['total_ne_err'] = list_of_total_ne_err
 
-    
 
 
     return quantities_to_return

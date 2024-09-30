@@ -25,9 +25,15 @@ for idx,shot in enumerate(shotlist):
             shot_data['te_fitted_profile'][t_idx], 
             label=rf"{shot_data['te_fit_type'][t_idx]}: $\chi^2$ = {shot_data['te_reduced_chi_squared'][t_idx]:.2f}"
         )
+        plt.plot(
+            shot_data['total_psi_te'][t_idx], 
+            shot_data['total_te'][t_idx], 
+            label='Raw data'
+        )
         plt.xlabel('psi')
         plt.ylabel('Te (eV)')
         plt.title('Te profile at t = ' + str(time) + ' ms')
         plt.legend()
 
         plt.savefig(f'{shot_data_directory}/Te_profile_t_{time}ms.png',dpi=100)
+        plt.clf()
