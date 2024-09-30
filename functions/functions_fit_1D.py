@@ -800,7 +800,7 @@ def master_fit_ne_Te_1D(shot, t_min=0, t_max=5000, scale_core_TS_to_TCI = False,
         'te_reduced_chi_squared': list_of_te_reduced_chi_squared,
         'te_fit_type': list_of_te_fit_type,
         'ne_fit_times_ms': list_of_successful_ne_fit_times_ms,
-        'ne_fitted_profiles': list_fitted_ne_profiles,
+        'ne_fitted_profile': list_fitted_ne_profiles,
         'ne_reduced_chi_squared': list_of_ne_reduced_chi_squared,
         'ne_fit_type': list_of_ne_fit_type,
     }
