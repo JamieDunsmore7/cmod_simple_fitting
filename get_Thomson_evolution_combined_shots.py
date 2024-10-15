@@ -1,4 +1,7 @@
-            #directory = f'pedestal_evolution_params_psi/{experiment}/transition_{transition}' #for multiple shots
+'''
+Perform 2D Thomson fits for combined shots in Jamie's database of LH transition shots from 2010.
+TODO: make this more general so it just takes in a list of shots and a list of time ranges.
+'''
 
 import MDSplus
 import matplotlib as mpl
