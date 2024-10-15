@@ -1,3 +1,9 @@
+'''
+Pass in a list of shots. Performs a pedestal fit to every time slice in the shot using the master_fit_ne_Te_1D function.
+Saves the data as a dictionary in the 'saved_files' directory.
+'''
+
+
 import pickle
 import numpy as np
 import os
@@ -18,7 +24,7 @@ list_of_shots = [1030523030, 1050413031]
 dictionary_of_all_data = {}
 
 for shot in list_of_shots:
-    generated_psi_grid, list_of_successful_te_fit_times_ms, list_fitted_te_profiles, list_of_te_reduced_chi_squared, list_of_te_fit_type, list_of_successful_ne_fit_times_ms, list_fitted_ne_profiles, list_of_ne_reduced_chi_squared, list_of_ne_fit_type = master_fit_ne_Te_1D(shot, t_min=1460, t_max=1500, plot_the_fits=True)
+    generated_psi_grid, list_of_successful_te_fit_times_ms, list_fitted_te_profiles, list_of_te_reduced_chi_squared, list_of_te_fit_type, list_of_successful_ne_fit_times_ms, list_fitted_ne_profiles, list_of_ne_reduced_chi_squared, list_of_ne_fit_type = master_fit_ne_Te_1D(shot, t_min=0, t_max=3000, plot_the_fits=True, set_Te_floor=None, set_ne_floor=None, )
     dictionary_of_all_data[shot] = {
         'generated_psi_grid': generated_psi_grid,
 
@@ -54,10 +60,3 @@ plt.ylabel('Te (eV)')
 plt.title('Te profile at t = ' + str(shot_data['te_fit_times_ms'][t_idx]) + ' ms')
 plt.legend()
 plt.show()
-
-
-
-
-
-
-

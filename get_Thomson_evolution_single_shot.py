@@ -1,3 +1,8 @@
+'''
+Perform 2D Thomson fits for single shots in Jamie's database of LH transition shots from 2010.
+TODO: make this more general so it just takes in a list of shots and a list of time ranges.
+'''
+
 import MDSplus
 import matplotlib as mpl
 import matplotlib.pyplot as plt
@@ -92,25 +97,3 @@ for experiment in experiment_selection:
 
             except:
                 print('Could not fit the data for shot ' + str(shot) + ' transition ' + str(transition))
-
-
-
-
-
-
-
-
-
-            '''
-
-            for t in range(len(times)):
-                if t%10 == 0:
-                    plt.plot(psi_grid, ne_values[t], label = f'time = {times[t]}')
-            plt.show()
-
-            for t in range(len(times)):
-                if t%10 == 0:
-                    plt.plot(psi_grid, Te_values[t], label = f'time = {times[t]}')
-            plt.show()
-
-            '''

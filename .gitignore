@@ -1,5 +1,4 @@
 # all plots
-
 *.png
 *.pdf
 *.txt
@@ -7,5 +6,10 @@
 *.npy
 *.csv
 
+# don't save any folders which just contain results
 /jamie_APS
-
+/flux_gradient_results
+/saved_pedestal_evolutions
+/single_shots
+/saved_files
+.gitignore

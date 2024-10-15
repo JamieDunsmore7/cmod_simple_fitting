@@ -1,5 +1,6 @@
 '''
-Analysis into the core. Single shot case.
+Script for running the Ly-alpha D and v analysis for single shot case.
+Requres a saved pedestal evolution to have been run already.
 '''
 
 import MDSplus
@@ -319,9 +320,6 @@ for experiment in experiment_selection:
                 list_of_Rmid_on_Lya_timebase = []
                 for r_idx in range(len(complete_psi_grid)):
                     f_Te = interp1d(Thomson_data['times'], Thomson_data['Te_values'][:,r_idx])
-
-                    print(f"f_Te time range: {f_Te.x.min()} to {f_Te.x.max()}")
-                    print(f"list_of_times_ms range: {list_of_times_ms.min()} to {list_of_times_ms.max()}")
 
 
                     list_of_Te_on_Lya_timebase.append(f_Te(list_of_times_ms))
