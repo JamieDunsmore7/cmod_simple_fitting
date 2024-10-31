@@ -46,15 +46,20 @@ def get_raw_edge_Thomson_data(shot, t_min = None, t_max = None):
     tree = MDSplus.Tree('CMOD', shot)
     try:
         te = tree.getNode('\\TOP.ELECTRONS.YAG_EDGETS.RESULTS:TE').data()
+        te_err = tree.getNode('\\TOP.ELECTRONS.YAG_EDGETS.RESULTS:TE:ERROR').data()
+        ne = tree.getNode('\\TOP.ELECTRONS.YAG_EDGETS.RESULTS:NE').data()
+        ne_err = tree.getNode('\\TOP.ELECTRONS.YAG_EDGETS.RESULTS:NE:ERROR').data()
+        rmid_array = tree.getNode('\\TOP.ELECTRONS.YAG_EDGETS.RESULTS:RMID').data()
+        z_array = tree.getNode('\\TOP.ELECTRONS.YAG_EDGETS.DATA:FIBER_Z').data()
+        r_array = tree.getNode('\\TOP.ELECTRONS.YAG.RESULTS.PARAM:R').data()
+        thomson_time = tree.getNode('\\TOP.ELECTRONS.YAG_EDGETS.RESULTS:NE').dim_of().data()
     except MDSplus.mdsExceptions.TreeNNF:
-        warnings.warn('Node not found')
-    te_err = tree.getNode('\\TOP.ELECTRONS.YAG_EDGETS.RESULTS:TE:ERROR').data()
-    ne = tree.getNode('\\TOP.ELECTRONS.YAG_EDGETS.RESULTS:NE').data()
-    ne_err = tree.getNode('\\TOP.ELECTRONS.YAG_EDGETS.RESULTS:NE:ERROR').data()
-    rmid_array = tree.getNode('\\TOP.ELECTRONS.YAG_EDGETS.RESULTS:RMID').data()
-    z_array = tree.getNode('\\TOP.ELECTRONS.YAG_EDGETS.DATA:FIBER_Z').data()
-    r_array = tree.getNode('\\TOP.ELECTRONS.YAG.RESULTS.PARAM:R').data()
-    thomson_time = tree.getNode('\\TOP.ELECTRONS.YAG_EDGETS.RESULTS:NE').dim_of().data()
+        warnings.warn('MDSplus: Node not found. Skipping shot')
+        return np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan
+    except  MDSplus.mdsExceptions.TreeNODATA:
+        warnings.warn('MDSplus: Tree No Data. Skipping shot')
+        return np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan
+
 
     thomson_time *= 1000 #conversion to ms
     thomson_time = np.round(thomson_time).astype(int) #convert to integer number of ms
@@ -66,6 +71,11 @@ def get_raw_edge_Thomson_data(shot, t_min = None, t_max = None):
     te_err = te_err[:,mask]
     ne = ne[:,mask]
     ne_err = ne_err[:,mask]
+    
+    #TODO: is this the right thing to do?
+    #Mask may be longer than RMID. If so, add one more column with same value as last column
+    if rmid_array.shape[1]==len(mask)-1:
+        rmid_array = np.hstack((rmid_array,rmid_array[:,-2:-1]))
     rmid_array = rmid_array[:,mask]
 
     return thomson_time, ne, ne_err, te, te_err, rmid_array, r_array, z_array
@@ -102,26 +112,30 @@ def get_raw_core_Thomson_data(shot, t_min = None, t_max = None):
 
     '''
     tree = MDSplus.Tree('CMOD', shot)
-    if shot > 1020000000: #get data from the new core system
-        te = tree.getNode('\\TOP.ELECTRONS.YAG_NEW.RESULTS.PROFILES:TE_RZ').data() * 1000 # convert from keV to eV straight away
-        te_err = tree.getNode('\\TOP.ELECTRONS.YAG_NEW.RESULTS.PROFILES:TE_ERR').data() * 1000 # convert from keV to eV straight away
-        ne = tree.getNode('\\TOP.ELECTRONS.YAG_NEW.RESULTS.PROFILES:NE_RZ').data()
-        ne_err = tree.getNode('\\TOP.ELECTRONS.YAG_NEW.RESULTS.PROFILES:NE_ERR').data()
-        rmid_array = tree.getNode('\\TOP.ELECTRONS.YAG_NEW.RESULTS.PROFILES:R_MID_T').data()
-        r_array = tree.getNode('\\TOP.ELECTRONS.YAG.RESULTS.PARAM:R').data()
-        z_array = tree.getNode('\\TOP.ELECTRONS.YAG_NEW.RESULTS.PROFILES:Z_SORTED').data()
-        thomson_time = tree.getNode('\\TOP.ELECTRONS.YAG_NEW.RESULTS.PROFILES:NE_RZ').dim_of().data()
+    try:
+        if shot > 1020000000: #get data from the new core system
+            te = tree.getNode('\\TOP.ELECTRONS.YAG_NEW.RESULTS.PROFILES:TE_RZ').data() * 1000 # convert from keV to eV straight away
+            te_err = tree.getNode('\\TOP.ELECTRONS.YAG_NEW.RESULTS.PROFILES:TE_ERR').data() * 1000 # convert from keV to eV straight away
+            ne = tree.getNode('\\TOP.ELECTRONS.YAG_NEW.RESULTS.PROFILES:NE_RZ').data()
+            ne_err = tree.getNode('\\TOP.ELECTRONS.YAG_NEW.RESULTS.PROFILES:NE_ERR').data()
+            rmid_array = tree.getNode('\\TOP.ELECTRONS.YAG_NEW.RESULTS.PROFILES:R_MID_T').data()
+            r_array = tree.getNode('\\TOP.ELECTRONS.YAG.RESULTS.PARAM:R').data()
+            z_array = tree.getNode('\\TOP.ELECTRONS.YAG_NEW.RESULTS.PROFILES:Z_SORTED').data()
+            thomson_time = tree.getNode('\\TOP.ELECTRONS.YAG_NEW.RESULTS.PROFILES:NE_RZ').dim_of().data()
 
-    else: #get data from the old core system
-        te = tree.getNode('\\TOP.ELECTRONS.YAG.RESULTS.GLOBAL.PROFILE:TE_RZ_T').data() * 1000 # convert from keV to eV straight away
-        te_err = tree.getNode('\\TOP.ELECTRONS.YAG.RESULTS.GLOBAL.PROFILE:TE_ERR_ZT').data() * 1000 # convert from keV to eV straight away
-        ne = tree.getNode('\\TOP.ELECTRONS.YAG.RESULTS.GLOBAL.PROFILE:NE_RZ_T').data()
-        ne_err = tree.getNode('\\TOP.ELECTRONS.YAG.RESULTS.GLOBAL.PROFILE:NE_ERR_ZT').data()
-        rmid_array = tree.getNode('\\TOP.ELECTRONS.YAG.RESULTS.GLOBAL.PROFILE:R_MID_T').data()
-        r_array = tree.getNode('\\TOP.ELECTRONS.YAG.RESULTS.PARAM:R').data()
-        z_array = tree.getNode('\\TOP.ELECTRONS.YAG.RESULTS.GLOBAL.PROFILE:Z_SORTED').data()
-        thomson_time = tree.getNode('\\TOP.ELECTRONS.YAG.RESULTS.GLOBAL.PROFILE:NE_RZ_T').dim_of().data()
-
+        else: #get data from the old core system
+            te = tree.getNode('\\TOP.ELECTRONS.YAG.RESULTS.GLOBAL.PROFILE:TE_RZ_T').data() * 1000 # convert from keV to eV straight away
+            te_err = tree.getNode('\\TOP.ELECTRONS.YAG.RESULTS.GLOBAL.PROFILE:TE_ERR_ZT').data() * 1000 # convert from keV to eV straight away
+            ne = tree.getNode('\\TOP.ELECTRONS.YAG.RESULTS.GLOBAL.PROFILE:NE_RZ_T').data()
+            ne_err = tree.getNode('\\TOP.ELECTRONS.YAG.RESULTS.GLOBAL.PROFILE:NE_ERR_ZT').data()
+            rmid_array = tree.getNode('\\TOP.ELECTRONS.YAG.RESULTS.GLOBAL.PROFILE:R_MID_T').data()
+            r_array = tree.getNode('\\TOP.ELECTRONS.YAG.RESULTS.PARAM:R').data()
+            z_array = tree.getNode('\\TOP.ELECTRONS.YAG.RESULTS.GLOBAL.PROFILE:Z_SORTED').data()
+            thomson_time = tree.getNode('\\TOP.ELECTRONS.YAG.RESULTS.GLOBAL.PROFILE:NE_RZ_T').dim_of().data()
+    except (MDSplus.mdsExceptions.TreeNNF, MDSplus.mdsExceptions.TreeNODATA):
+            warnings.warn('MDSplus: Node not found or Tree No Data. Skipping shot')
+            return np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan
+    
     thomson_time *= 1000 #conversion to ms
     thomson_time = np.round(thomson_time).astype(int) #convert to integer number of ms
     mask = (thomson_time > t_min) & (thomson_time < t_max) #only want to return data within my chosen time range
