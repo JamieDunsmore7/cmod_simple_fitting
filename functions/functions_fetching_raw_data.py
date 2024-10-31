@@ -55,11 +55,10 @@ def get_raw_edge_Thomson_data(shot, t_min = None, t_max = None):
         thomson_time = tree.getNode('\\TOP.ELECTRONS.YAG_EDGETS.RESULTS:NE').dim_of().data()
     except MDSplus.mdsExceptions.TreeNNF:
         warnings.warn('MDSplus: Node not found. Skipping shot')
-        return np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan
+        return np.empty([1,1]), np.empty([1,1]), np.empty([1,1]), np.empty([1,1]), np.empty([1,1]), np.empty([1,1]), np.empty([1,1]), np.empty([1,1])
     except  MDSplus.mdsExceptions.TreeNODATA:
         warnings.warn('MDSplus: Tree No Data. Skipping shot')
-        return np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan
-
+        return np.empty([1,1]), np.empty([1,1]), np.empty([1,1]), np.empty([1,1]), np.empty([1,1]), np.empty([1,1]), np.empty([1,1]), np.empty([1,1])
 
     thomson_time *= 1000 #conversion to ms
     thomson_time = np.round(thomson_time).astype(int) #convert to integer number of ms
@@ -132,9 +131,13 @@ def get_raw_core_Thomson_data(shot, t_min = None, t_max = None):
             r_array = tree.getNode('\\TOP.ELECTRONS.YAG.RESULTS.PARAM:R').data()
             z_array = tree.getNode('\\TOP.ELECTRONS.YAG.RESULTS.GLOBAL.PROFILE:Z_SORTED').data()
             thomson_time = tree.getNode('\\TOP.ELECTRONS.YAG.RESULTS.GLOBAL.PROFILE:NE_RZ_T').dim_of().data()
-    except (MDSplus.mdsExceptions.TreeNNF, MDSplus.mdsExceptions.TreeNODATA):
-            warnings.warn('MDSplus: Node not found or Tree No Data. Skipping shot')
-            return np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan
+    except MDSplus.mdsExceptions.TreeNNF:
+        warnings.warn('MDSplus: Node not found. Skipping shot')
+        return np.empty([1,1]), np.empty([1,1]), np.empty([1,1]), np.empty([1,1]), np.empty([1,1]), np.empty([1,1]), np.empty([1,1]), np.empty([1,1])
+    except  MDSplus.mdsExceptions.TreeNODATA:
+        warnings.warn('MDSplus: Tree No Data. Skipping shot')
+        return np.empty([1,1]), np.empty([1,1]), np.empty([1,1]), np.empty([1,1]), np.empty([1,1]), np.empty([1,1]), np.empty([1,1]), np.empty([1,1])
+
     
     thomson_time *= 1000 #conversion to ms
     thomson_time = np.round(thomson_time).astype(int) #convert to integer number of ms

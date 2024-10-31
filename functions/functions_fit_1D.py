@@ -71,14 +71,15 @@ def master_fit_ne_Te_1D(shot, t_min=0, t_max=5000, scale_core_TS_to_TCI = False,
     Thomson_times, ne_array_edge, ne_err_array_edge, te_array_edge, te_err_array_edge, rmid_array_edge, r_array_edge, z_array_edge = get_raw_edge_Thomson_data(shot, t_min=t_min, t_max=t_max)
     Thomson_times_core, ne_array_core, ne_err_array_core, te_array_core, te_err_array_core, rmid_array_core, r_array_core, z_array_core = get_raw_core_Thomson_data(shot, t_min = t_min, t_max = t_max)
 
-    #If Thomson times are nan, skip shot
-    if np.all(np.isnan(Thomson_times)):
+    #TODO: make robust to core TS failure ex. 1140327008 --> Thomson_times_core is array([[4.94e-321]])
+    #If Thomson edge or core times are nan, skip shot
+    if np.all(np.isnan(Thomson_times)) or np.all(np.isnan(Thomson_times_core)):
         return dict()
 
     if np.any(Thomson_times != Thomson_times_core):
         print('Thomson times are not the same for core and edge data. This is a problem.')
-        raise ValueError('Thomson times are not the same for core and edge data. This is a problem.')
-
+        return dict()
+        #raise ValueError('Thomson times are not the same for core and edge data. This is a problem.')
 
     # if the EFIT20 equilibrium doesn't exist (which is the one on the Thomson timebase), just use the normal ANALYSIS one instead.
     try:
@@ -335,6 +336,17 @@ def master_fit_ne_Te_1D(shot, t_min=0, t_max=5000, scale_core_TS_to_TCI = False,
                 if verbose > 0:
                     print('Te mtanh fit failed.')
 
+            #TODO: why are there sometimes nans for total total_psi_ne? Example 1030523024, 1090820008. Seems like these all occur at t<0.4s, so maybe because reconstruction is having and issue
+            #If <2/3rds of points are nans, remove the nans
+            nan_mask=np.isnan(total_psi_te)
+            total_nans = np.sum(nan_mask)
+            total_points = len(nan_mask)
+            if total_nans<total_points and total_nans>0:
+                total_psi_te= total_psi_te[~nan_mask]
+                total_te = total_te[~nan_mask]
+                total_te_err = total_te_err[~nan_mask]
+                print(f'Removing {total_nans} nans in rho array (out of {total_points} points) from Te profile at time {time_in_s}[s]')
+
             # Do the cubic fits
             te_params_cubic, te_covariance_cubic = curve_fit(Cubic, total_psi_te, total_te, sigma=total_te_err, absolute_sigma=True, maxfev=2000)
             te_fitted_cubic = Cubic(generated_psi_grid, te_params_cubic[0], te_params_cubic[1], te_params_cubic[2], te_params_cubic[3])
@@ -496,6 +508,16 @@ def master_fit_ne_Te_1D(shot, t_min=0, t_max=5000, scale_core_TS_to_TCI = False,
             if ne_params is None and verbose > 0:
                 print('Ne mtanh fit failed.')
 
+            #TODO: why are there sometimes nans for total total_psi_ne? Example 1030523024, 1090820008. Seems like these all occur at t<0.5s, so maybe because reconstruction is having and issue
+            #If <2/3rds of points are nans, remove the nans
+            nan_mask=np.isnan(total_psi_ne)
+            total_nans = np.sum(nan_mask)
+            total_points = len(nan_mask)
+            if total_nans<total_points and total_nans > 0:
+                total_psi_ne= total_psi_ne[~nan_mask]
+                total_ne = total_ne[~nan_mask]
+                total_ne_err = total_ne_err[~nan_mask]
+                print(f'Removing {total_nans} nans in rho array (out of {total_points} points) from ne profile at time {time_in_s}[s]')
 
             # Do the cubic fits
             ne_params_cubic, ne_covariance_cubic = curve_fit(Cubic, total_psi_ne, total_ne/1e20, sigma=total_ne_err/1e20, absolute_sigma=True, maxfev=2000)

@@ -16,8 +16,8 @@ from functions.functions_fit_1D import master_fit_ne_Te_1D
 ##################################
 ### EDIT SETTINGS HERE
 ##################################
-list_of_shots = list(np.loadtxt('Cmod_unstable_shotlist.txt').astype(np.int64))[15:]#[1030523030, 1050413029]
-t_min=100
+list_of_shots = list(np.loadtxt('Cmod_stable_shotlist.txt').astype(np.int64))[36:]#[1030523030, 1050413029]
+t_min=150
 t_max=2400
 save_type= 'dict' #xarray/netcdf or dict or both
 save_path = 'saved_files'
