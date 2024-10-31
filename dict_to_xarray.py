@@ -40,4 +40,3 @@ for idx,shot in enumerate(shotlist):
 
 
 
-

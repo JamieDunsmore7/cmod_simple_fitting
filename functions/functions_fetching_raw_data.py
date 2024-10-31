@@ -11,6 +11,7 @@ from scipy.optimize import curve_fit
 from scipy.constants import Boltzmann as kB, e as q_electron, m_p
 import eqtools
 from eqtools import CModEFIT
+import warnings
 
 from functions.functions_utility import *
 
@@ -43,7 +44,10 @@ def get_raw_edge_Thomson_data(shot, t_min = None, t_max = None):
 
     '''
     tree = MDSplus.Tree('CMOD', shot)
-    te = tree.getNode('\\TOP.ELECTRONS.YAG_EDGETS.RESULTS:TE').data()
+    try:
+        te = tree.getNode('\\TOP.ELECTRONS.YAG_EDGETS.RESULTS:TE').data()
+    except MDSplus.mdsExceptions.TreeNNF:
+        warnings.warn('Node not found')
     te_err = tree.getNode('\\TOP.ELECTRONS.YAG_EDGETS.RESULTS:TE:ERROR').data()
     ne = tree.getNode('\\TOP.ELECTRONS.YAG_EDGETS.RESULTS:NE').data()
     ne_err = tree.getNode('\\TOP.ELECTRONS.YAG_EDGETS.RESULTS:NE:ERROR').data()

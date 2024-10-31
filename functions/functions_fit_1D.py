@@ -526,9 +526,9 @@ def master_fit_ne_Te_1D(shot, t_min=0, t_max=5000, scale_core_TS_to_TCI = False,
                     if len(total_psi_ne[pedestal_mask]) < 3:
                         if verbose > 0:
                             print(f'Reject Ne mtanh fit because there are only {len(total_psi_ne[pedestal_mask])} points in the pedestal (require at least 3)')
-                        plt.errorbar(total_psi_ne, total_ne, yerr=total_ne_err, fmt='o')
-                        plt.plot(generated_psi_grid, ne_fitted)
-                        plt.show()
+                            plt.errorbar(total_psi_ne, total_ne, yerr=total_ne_err, fmt='o')
+                            plt.plot(generated_psi_grid, ne_fitted)
+                            plt.show()
 
                         ne_params = None
                         ne_covariance = None
