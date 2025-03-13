@@ -70,12 +70,20 @@ def master_fit_ne_Te_1D(shot, t_min=0, t_max=5000, scale_core_TS_to_TCI = False,
 
     Thomson_times, ne_array_edge, ne_err_array_edge, te_array_edge, te_err_array_edge, rmid_array_edge, r_array_edge, z_array_edge = get_raw_edge_Thomson_data(shot, t_min=t_min, t_max=t_max)
     Thomson_times_core, ne_array_core, ne_err_array_core, te_array_core, te_err_array_core, rmid_array_core, r_array_core, z_array_core = get_raw_core_Thomson_data(shot, t_min = t_min, t_max = t_max)
-
+    
     #TODO: make robust to core TS failure ex. 1140327008 --> Thomson_times_core is array([[4.94e-321]])
     #If Thomson edge or core times are nan, skip shot
     if np.all(np.isnan(Thomson_times)) or np.all(np.isnan(Thomson_times_core)):
         return dict()
 
+    #TODO: make robust to shots where fewer ne points than rmid (1140605007)
+    rmid_array_width = rmid_array_core.shape[0]
+    ne_array_width = ne_array_core.shape[0]
+    if rmid_array_width != ne_array_width:
+        print(f'Number of rmid points per time ({rmid_array_width}) does not equal number of ne points per time ({ne_array_width})')
+        return dict()
+
+    #If thomson times are not aligned, skip
     if np.any(Thomson_times != Thomson_times_core):
         print('Thomson times are not the same for core and edge data. This is a problem.')
         return dict()

@@ -43,7 +43,11 @@ def get_raw_edge_Thomson_data(shot, t_min = None, t_max = None):
     NOTE: edge Thomson data are only available for SHOT > 1000000000
 
     '''
-    tree = MDSplus.Tree('CMOD', shot)
+    try:
+        tree = MDSplus.Tree('CMOD', shot)
+    except MDSplus.mdsExceptions.TreeFILE_NOT_FOUND:
+        warnings.warn('MDSplus: File not found. Skipping shot')
+        return np.empty([1,1]), np.empty([1,1]), np.empty([1,1]), np.empty([1,1]), np.empty([1,1]), np.empty([1,1]), np.empty([1,1]), np.empty([1,1])
     try:
         te = tree.getNode('\\TOP.ELECTRONS.YAG_EDGETS.RESULTS:TE').data()
         te_err = tree.getNode('\\TOP.ELECTRONS.YAG_EDGETS.RESULTS:TE:ERROR').data()
@@ -59,6 +63,13 @@ def get_raw_edge_Thomson_data(shot, t_min = None, t_max = None):
     except  MDSplus.mdsExceptions.TreeNODATA:
         warnings.warn('MDSplus: Tree No Data. Skipping shot')
         return np.empty([1,1]), np.empty([1,1]), np.empty([1,1]), np.empty([1,1]), np.empty([1,1]), np.empty([1,1]), np.empty([1,1]), np.empty([1,1])
+    except MDSplus.mdsExceptions.TreeBADRECORD:
+        warnings.warn('MDSplus: File not found. Skipping shot')
+        return np.empty([1,1]), np.empty([1,1]), np.empty([1,1]), np.empty([1,1]), np.empty([1,1]), np.empty([1,1]), np.empty([1,1]), np.empty([1,1])
+    except MDSplus.mdsExceptions.TreeNCIREAD:
+        warnings.warn('MDSplus: Error reading node characteristics. Skipping shot')
+        return np.empty([1,1]), np.empty([1,1]), np.empty([1,1]), np.empty([1,1]), np.empty([1,1]), np.empty([1,1]), np.empty([1,1]), np.empty([1,1])
+
 
     thomson_time *= 1000 #conversion to ms
     thomson_time = np.round(thomson_time).astype(int) #convert to integer number of ms
@@ -110,7 +121,11 @@ def get_raw_core_Thomson_data(shot, t_min = None, t_max = None):
           Details on how to read in data from the old system can be found on the C-Mod wiki.
 
     '''
-    tree = MDSplus.Tree('CMOD', shot)
+    try:
+        tree = MDSplus.Tree('CMOD', shot)
+    except MDSplus.mdsExceptions.TreeFILE_NOT_FOUND:
+        warnings.warn('MDSplus: File not found. Skipping shot')
+        return np.empty([1,1]), np.empty([1,1]), np.empty([1,1]), np.empty([1,1]), np.empty([1,1]), np.empty([1,1]), np.empty([1,1]), np.empty([1,1])
     try:
         if shot > 1020000000: #get data from the new core system
             te = tree.getNode('\\TOP.ELECTRONS.YAG_NEW.RESULTS.PROFILES:TE_RZ').data() * 1000 # convert from keV to eV straight away
@@ -136,6 +151,12 @@ def get_raw_core_Thomson_data(shot, t_min = None, t_max = None):
         return np.empty([1,1]), np.empty([1,1]), np.empty([1,1]), np.empty([1,1]), np.empty([1,1]), np.empty([1,1]), np.empty([1,1]), np.empty([1,1])
     except  MDSplus.mdsExceptions.TreeNODATA:
         warnings.warn('MDSplus: Tree No Data. Skipping shot')
+        return np.empty([1,1]), np.empty([1,1]), np.empty([1,1]), np.empty([1,1]), np.empty([1,1]), np.empty([1,1]), np.empty([1,1]), np.empty([1,1])
+    except MDSplus.mdsExceptions.TreeBADRECORD:
+        warnings.warn('MDSplus: File not found. Skipping shot')
+        return np.empty([1,1]), np.empty([1,1]), np.empty([1,1]), np.empty([1,1]), np.empty([1,1]), np.empty([1,1]), np.empty([1,1]), np.empty([1,1])
+    except MDSplus.mdsExceptions.TreeNCIREAD:
+        warnings.warn('MDSplus: Error reading node characteristics. Skipping shot')
         return np.empty([1,1]), np.empty([1,1]), np.empty([1,1]), np.empty([1,1]), np.empty([1,1]), np.empty([1,1]), np.empty([1,1]), np.empty([1,1])
 
     

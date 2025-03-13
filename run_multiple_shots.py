@@ -9,6 +9,7 @@ import MDSplus
 import eqtools
 from eqtools import CModEFIT
 import xarray as xr
+from tqdm import tqdm
 
 from functions.functions_fit_1D import master_fit_ne_Te_1D
 
@@ -16,7 +17,7 @@ from functions.functions_fit_1D import master_fit_ne_Te_1D
 ##################################
 ### EDIT SETTINGS HERE
 ##################################
-list_of_shots = list(np.loadtxt('Cmod_stable_shotlist.txt').astype(np.int64))[36:]#[1030523030, 1050413029]
+list_of_shots = list(np.loadtxt('Cmod_stable_shotlist.txt').astype(np.int64))[130:]#[1030523030, 1050413029]
 t_min=150
 t_max=2400
 save_type= 'dict' #xarray/netcdf or dict or both
@@ -29,9 +30,9 @@ dictionary_of_all_data = {}
 os.makedirs(save_path, exist_ok=True)
 
 print(f"\nProcessing {num_shots} shots")
-for idx,shot in enumerate(list_of_shots):
-    percentage = (idx+1)/num_shots*100
-    print(f"Processing shot {shot} ({percentage:.2f}%, {idx+1}/{num_shots})")
+for idx,shot in tqdm(enumerate(list_of_shots)):
+    # percentage = (idx+1)/num_shots*100
+    # print(f"Processing shot {shot} ({percentage:.2f}%, {idx+1}/{num_shots})")
     shot_data = master_fit_ne_Te_1D(shot, t_min=t_min, t_max=t_max, 
                                                        plot_the_fits=False,verbose=0,
                                                        return_processed_raw_data=True)
